@@ -4,12 +4,13 @@ import json
 import time
 import secrets
 import string
+import uuid
 import jwt
 import re
 from datetime import datetime, timedelta
 from functools import wraps
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
 import oss2
 import requests
@@ -32,6 +33,9 @@ SMS_SERVICE = config.get('SMS_SERVICE', 'http://127.0.0.1:5002')
 
 OSS_PREFIX = 'zhujiemian/'
 LOG_PREFIX = 'rizhi/'
+CLOUD_PREFIX = 'yunkongjian/'
+CACHE_PREFIX = 'huancun/'
+DEFAULT_QUOTA = 2147483648  # 2GB
 
 SUPER_ADMIN = {
     'phone': '18981820927',
@@ -181,7 +185,6 @@ def login_sms():
     if not re.match(r'^\d{11}$', phone):
         return jsonify({'error': '手机号格式错误'}), 400
 
-    # 验证验证码
     try:
         resp = requests.post(f'{SMS_SERVICE}/api/sms/verify',
                              json={'phone': phone, 'code': code, 'purpose': 'login'}, timeout=10)
@@ -312,7 +315,6 @@ def forgot_password():
     if len(new_pwd) < 8:
         return jsonify({'error': '密码至少 8 位'}), 400
 
-    # 验证验证码
     try:
         resp = requests.post(f'{SMS_SERVICE}/api/sms/verify',
                              json={'phone': phone, 'code': code, 'purpose': 'forgot'}, timeout=10)
@@ -373,7 +375,6 @@ def list_users():
     role = request.current_user.get('role')
     users = load_users()
     if role in ['master', 'deputy']:
-        # 主/副管理可以看全部
         pass
     safe = [safe_user(u) for u in users]
     return jsonify({'users': safe})
@@ -434,7 +435,6 @@ def update_permissions():
     if not user:
         return jsonify({'error': '用户不存在'}), 404
 
-    # 主管理不能改主管理，副管理只能改普通用户
     if current['role'] == 'master' and user['role'] == 'master':
         return jsonify({'error': '不能修改其他主管理'}), 403
     if current['role'] == 'deputy' and user['role'] in ['master', 'deputy']:
@@ -599,7 +599,42 @@ def delete_account():
     log_operation(phone, 'delete_account', phone, '注销账号')
     return jsonify({'message': '账号已注销'})
 
-# ---------- 云空间 ----------
+# ============ 云空间 ============
+
+def get_user_cloud(phone):
+    """获取用户云空间信息"""
+    users = load_users()
+    user = next((u for u in users if u['phone'] == phone), None)
+    if not user:
+        return None
+    if 'cloud_limit' not in user:
+        user['cloud_limit'] = DEFAULT_QUOTA
+    if 'cloud_used' not in user:
+        user['cloud_used'] = 0
+    return user
+
+
+def recalc_cloud_used(phone):
+    """重新从 OSS 算用户已用大小"""
+    bucket = get_oss_client()
+    prefix = f'{CLOUD_PREFIX}{phone}/'
+    total = 0
+    marker = ''
+    while True:
+        resp = bucket.list_objects(prefix=prefix, marker=marker)
+        for obj in resp.object_list:
+            total += obj.size
+        if not resp.is_truncated:
+            break
+        marker = resp.next_marker
+    users = load_users()
+    user = next((u for u in users if u['phone'] == phone), None)
+    if user:
+        user['cloud_used'] = total
+        save_users(users)
+    return total
+
+
 @app.route('/api/cloud/info', methods=['GET'])
 @require_auth
 def cloud_info():
@@ -607,9 +642,217 @@ def cloud_info():
     if not user:
         return jsonify({'error': '用户不存在'}), 404
     return jsonify({
-        'limit': user.get('cloud_limit', 2147483648),
+        'limit': user.get('cloud_limit', DEFAULT_QUOTA),
         'used': user.get('cloud_used', 0)
     })
+
+
+@app.route('/api/cloud/upload', methods=['POST'])
+@require_auth
+def cloud_upload():
+    """上传：huancun/{临时ID}/ → yunkongjian/{手机号}/ → 删缓存"""
+    phone = request.current_user['phone']
+    user = get_user_cloud(phone)
+    if not user:
+        return jsonify({'error': '用户不存在'}), 404
+
+    if 'file' not in request.files:
+        return jsonify({'error': '缺少文件'}), 400
+
+    file = request.files['file']
+    if not file or file.filename == '':
+        return jsonify({'error': '文件名为空'}), 400
+
+    temp_id = request.form.get('temp_id', '').strip()
+    if not temp_id:
+        temp_id = uuid.uuid4().hex
+
+    original_name = file.filename
+    safe_name = original_name.replace('/', '_').replace('\\', '_')
+
+    file_data = file.read()
+    file_size = len(file_data)
+
+    limit = user.get('cloud_limit', DEFAULT_QUOTA)
+    used = user.get('cloud_used', 0)
+    if used + file_size > limit:
+        return jsonify({
+            'error': f'空间不足，已用 {used/1048576:.2f}MB，限额 {limit/1048576:.2f}MB，本次 {file_size/1048576:.2f}MB'
+        }), 400
+
+    bucket = get_oss_client()
+
+    cache_key = f'{CACHE_PREFIX}{temp_id}/{safe_name}'
+    try:
+        bucket.put_object(cache_key, file_data)
+    except Exception as e:
+        return jsonify({'error': f'缓存写入失败：{e}'}), 500
+
+    target_key = f'{CLOUD_PREFIX}{phone}/{safe_name}'
+    try:
+        bucket.put_object(target_key, file_data)
+    except Exception as e:
+        return jsonify({'error': f'转存失败：{e}'}), 500
+
+    try:
+        bucket.delete_object(cache_key)
+    except Exception as e:
+        print(f'缓存删除失败（不影响主流程）: {e}')
+
+    users = load_users()
+    target_user = next((u for u in users if u['phone'] == phone), None)
+    if target_user:
+        target_user['cloud_used'] = target_user.get('cloud_used', 0) + file_size
+        save_users(users)
+
+    log_operation(phone, 'cloud_upload', safe_name, f'大小:{file_size}字节')
+
+    return jsonify({
+        'message': '上传成功',
+        'file': {
+            'name': safe_name,
+            'size': file_size,
+            'key': target_key
+        },
+        'cloud_used': target_user.get('cloud_used', 0),
+        'cloud_limit': target_user.get('cloud_limit', DEFAULT_QUOTA)
+    })
+
+
+@app.route('/api/cloud/list', methods=['GET'])
+@require_auth
+def cloud_list():
+    """列出当前用户云空间所有文件"""
+    phone = request.current_user['phone']
+    bucket = get_oss_client()
+    prefix = f'{CLOUD_PREFIX}{phone}/'
+
+    files = []
+    marker = ''
+    while True:
+        resp = bucket.list_objects(prefix=prefix, marker=marker)
+        for obj in resp.object_list:
+            files.append({
+                'name': obj.key[len(prefix):],
+                'size': obj.size,
+                'last_modified': obj.last_modified,
+                'key': obj.key
+            })
+        if not resp.is_truncated:
+            break
+        marker = resp.next_marker
+
+    user = find_user(phone)
+    return jsonify({
+        'files': files,
+        'cloud_used': user.get('cloud_used', 0) if user else 0,
+        'cloud_limit': user.get('cloud_limit', DEFAULT_QUOTA) if user else DEFAULT_QUOTA
+    })
+
+
+@app.route('/api/cloud/download/<path:filename>', methods=['GET'])
+@require_auth
+def cloud_download(filename):
+    """下载文件"""
+    phone = request.current_user['phone']
+    safe_name = filename.replace('/', '_').replace('\\', '_')
+    key = f'{CLOUD_PREFIX}{phone}/{safe_name}'
+    bucket = get_oss_client()
+
+    try:
+        obj = bucket.get_object(key)
+        data = obj.read()
+    except oss2.exceptions.NoSuchKey:
+        return jsonify({'error': '文件不存在'}), 404
+    except Exception as e:
+        return jsonify({'error': f'下载失败：{e}'}), 500
+
+    from io import BytesIO
+    bio = BytesIO(data)
+    bio.seek(0)
+    log_operation(phone, 'cloud_download', safe_name, '')
+    return send_file(
+        bio,
+        as_attachment=True,
+        download_name=safe_name
+    )
+
+
+@app.route('/api/cloud/delete', methods=['POST'])
+@require_auth
+def cloud_delete():
+    """删除文件"""
+    phone = request.current_user['phone']
+    data = request.json or {}
+    filename = data.get('filename', '').strip()
+    if not filename:
+        return jsonify({'error': '缺少文件名'}), 400
+
+    safe_name = filename.replace('/', '_').replace('\\', '_')
+    key = f'{CLOUD_PREFIX}{phone}/{safe_name}'
+    bucket = get_oss_client()
+
+    if not bucket.object_exists(key):
+        return jsonify({'error': '文件不存在'}), 404
+
+    try:
+        obj = bucket.get_object(key)
+        file_size = obj.content_length
+        bucket.delete_object(key)
+    except Exception as e:
+        return jsonify({'error': f'删除失败：{e}'}), 500
+
+    users = load_users()
+    user = next((u for u in users if u['phone'] == phone), None)
+    if user:
+        user['cloud_used'] = max(0, user.get('cloud_used', 0) - file_size)
+        save_users(users)
+
+    log_operation(phone, 'cloud_delete', safe_name, '')
+    return jsonify({'message': '删除成功', 'cloud_used': user.get('cloud_used', 0) if user else 0})
+
+
+@app.route('/api/cloud/share', methods=['POST'])
+@require_auth
+def cloud_share():
+    """生成分享链接（带 token 的临时链接）"""
+    phone = request.current_user['phone']
+    data = request.json or {}
+    filename = data.get('filename', '').strip()
+    expire_days = int(data.get('expire_days', 7) or 7)
+
+    if not filename:
+        return jsonify({'error': '缺少文件名'}), 400
+
+    safe_name = filename.replace('/', '_').replace('\\', '_')
+    key = f'{CLOUD_PREFIX}{phone}/{safe_name}'
+    bucket = get_oss_client()
+
+    if not bucket.object_exists(key):
+        return jsonify({'error': '文件不存在'}), 404
+
+    expire_seconds = expire_days * 86400
+    try:
+        url = bucket.sign_url('GET', key, expire_seconds, slash_safe=True)
+    except Exception as e:
+        return jsonify({'error': f'生成分享链接失败：{e}'}), 500
+
+    log_operation(phone, 'cloud_share', safe_name, f'有效期:{expire_days}天')
+    return jsonify({
+        'url': url,
+        'filename': safe_name,
+        'expire_days': expire_days
+    })
+
+
+@app.route('/api/cloud/recalc', methods=['POST'])
+@require_auth
+def cloud_recalc():
+    """重新计算已用空间"""
+    phone = request.current_user['phone']
+    total = recalc_cloud_used(phone)
+    return jsonify({'cloud_used': total})
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
