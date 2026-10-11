@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>综合管理系统</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family:'Segoe UI','PingFang SC',sans-serif;
+    min-height:100vh;
+    background:linear-gradient(135deg,#0f2027 0%,#203a43 50%,#2c5364 100%);
+    color:#fff;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:30px 20px;
+  }
+  .topbar { width:100%; max-width:1000px; display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; }
+  .topbar .title { font-size:22px; font-weight:700; background:linear-gradient(135deg,#4facfe,#00f2fe); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .user-area { display:flex; align-items:center; gap:12px; }
+  .avatar { width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#f093fb,#f5576c); display:flex; align-items:center; justify-content:center; font-size:20px; cursor:pointer; border:2px solid rgba(255,255,255,0.2); }
+  .main-title { text-align:center; margin-bottom:40px; }
+  .main-title h1 { font-size:38px; font-weight:800; background:linear-gradient(135deg,#4facfe,#00f2fe,#43e97b); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:10px; }
+  .main-title p { color:rgba(255,255,255,0.5); font-size:14px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:24px; max-width:1000px; width:100%; }
+  .card { background:rgba(255,255,255,0.06); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.1); border-radius:24px; padding:40px 24px; text-align:center; cursor:pointer; transition:0.3s; color:#fff; display:flex; flex-direction:column; align-items:center; gap:12px; }
+  .card:hover { transform:translateY(-8px); border-color:rgba(255,255,255,0.25); box-shadow:0 20px 50px rgba(0,0,0,0.35); }
+  .card .icon { font-size:52px; }
+  .card .name { font-size:19px; font-weight:700; }
+  .card .desc { font-size:12px; color:rgba(255,255,255,0.5); }
+  .card.locked { opacity:0.45; position:relative; }
+  .card.locked::after { content:'🔒'; position:absolute; top:12px; right:16px; font-size:20px; }
+  .cloud-bar { width:100%; max-width:1000px; margin-top:30px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:20px 24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+  .cloud-bar .info { display:flex; align-items:center; gap:14px; }
+  .cloud-bar .info .icon { font-size:32px; }
+  .cloud-bar .info .label { font-size:14px; font-weight:600; }
+  .cloud-bar .info .value { font-size:12px; color:rgba(255,255,255,0.5); }
+  .cloud-bar button { padding:10px 20px; border:none; border-radius:12px; background:linear-gradient(135deg,#43e97b,#38f9d7); color:#000; font-weight:700; cursor:pointer; font-size:13px; }
+  .overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px); z-index:1000; justify-content:center; align-items:center; padding:20px; }
+  .overlay.show { display:flex; }
+  .modal { background:#1a2332; border:1px solid rgba(255,255,255,0.1); border-radius:24px; padding:32px; max-width:460px; width:100%; max-height:90vh; overflow-y:auto; }
+  .modal h2 { font-size:22px; margin-bottom:18px; color:#4facfe; }
+  .form-group { margin-bottom:16px; }
+  .modal label { display:block; font-size:13px; color:rgba(255,255,255,0.6); margin-bottom:6px; }
+  .modal input, .modal select { width:100%; padding:12px 16px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:12px; color:#fff; font-size:15px; outline:none; }
+  .modal input:focus, .modal select:focus { border-color:#4facfe; }
+  .btn { width:100%; padding:13px; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; margin-top:6px; }
+  .btn-primary { background:linear-gradient(135deg,#4facfe,#00f2fe); color:#000; }
+  .btn-success { background:linear-gradient(135deg,#43e97b,#38f9d7); color:#000; }
+  .btn-outline { background:transparent; color:#fff; border:1px solid rgba(255,255,255,0.2); }
+  .btn-danger { background:linear-gradient(135deg,#ff6b6b,#ee5a24); color:#fff; }
+  .msg { font-size:13px; margin-top:10px; min-height:18px; }
+  .msg.error { color:#ff6b6b; }
+  .msg.success { color:#43e97b; }
+  .activate-hint { font-size:13px; color:rgba(255,255,255,0.5); text-align:center; margin-top:16px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.08); line-height:1.7; }
+  .activate-hint strong { color:#ffd700; }
+  .user-table { width:100%; font-size:13px; border-collapse:collapse; margin-top:8px; }
+  .user-table th, .user-table td { padding:8px 6px; text-align:left; border-bottom:1px solid rgba(255,255,255,0.06); }
+  .user-table th { color:rgba(255,255,255,0.5); font-weight:600; }
+  .role-tag { display:inline-block; padding:2px 8px; border-radius:8px; font-size:11px; font-weight:700; }
+  .role-tag.super { background:#ffd700; color:#000; }
+  .role-tag.master { background:#ff8c00; color:#000; }
+  .role-tag.deputy { background:#4facfe; color:#000; }
+  .role-tag.user { background:#43e97b; color:#000; }
+  .perm-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  .perm-item { display:flex; align-items:center; gap:8px; padding:12px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:12px; cursor:pointer; font-size:14px; }
+  .perm-item input { width:18px; height:18px; }
+  .code-box { background:rgba(255,255,255,0.06); border:1px dashed rgba(255,255,255,0.25); border-radius:12px; padding:16px; font-family:monospace; font-size:16px; word-break:break-all; text-align:center; color:#ffd700; margin:12px 0; letter-spacing:2px; }
+  @media (max-width:600px) {
+    .main-title h1 { font-size:28px; }
+    .grid { grid-template-columns:1fr 1fr; gap:14px; }
+    .card { padding:26px 12px; }
+    .card .icon { font-size:38px; }
+    .card .name { font-size:14px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 顶部 -->
+<div class="topbar">
+  <div class="title">🛡️ 综合管理系统</div>
+  <div class="user-area" id="userArea" style="display:none;">
+    <span id="userName" style="font-size:13px;color:rgba(255,255,255,0.7);"></span>
+    <div class="avatar" id="avatarBtn">👤</div>
+  </div>
+</div>
+
+<!-- 主标题 -->
+<div class="main-title">
+  <h1 id="welcomeTitle">欢迎使用</h1>
+  <p id="welcomeSub">请选择要进入的模块</p>
+</div>
+
+<!-- 卡片 -->
+<div class="grid" id="cardGrid" style="display:none;">
+  <div class="card" data-perm="jingqu">
+    <div class="icon">🎫</div>
+    <div class="name">景区管理器</div>
+    <div class="desc">门票生成 · 核销 · 用户</div>
+  </div>
+  <div class="card" data-perm="member">
+    <div class="icon">🛡️</div>
+    <div class="name">会员中心</div>
+    <div class="desc">分级管理 · 积分余额</div>
+  </div>
+  <div class="card" data-perm="checkin">
+    <div class="icon">✅</div>
+    <div class="name">签到中心</div>
+    <div class="desc">家庭圈 · 签到活动</div>
+  </div>
+  <div class="card" data-perm="game">
+    <div class="icon">🎮</div>
+    <div class="name">游戏中心</div>
+    <div class="desc">40 款游戏 · AI 问答</div>
+  </div>
+</div>
+
+<!-- 云空间 -->
+<div class="cloud-bar" id="cloudBar" style="display:none;">
+  <div class="info">
+    <div class="icon">☁️</div>
+    <div class="text">
+      <div class="label">我的云空间</div>
+      <div class="value" id="cloudValue">加载中 ...</div>
+    </div>
+  </div>
+  <button id="cloudExpandBtn">➕ 扩容</button>
+</div>
+
+<!-- ============ 模态框 ============ -->
+
+<!-- 登录 -->
+<div class="overlay" id="loginModal">
+  <div class="modal">
+    <h2>🔑 登录</h2>
+    <div class="form-group">
+      <label>手机号</label>
+      <input type="tel" id="loginPhone" placeholder="11 位手机号" maxlength="11" />
+    </div>
+    <div class="form-group" id="codeGroup">
+      <label>验证码</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="loginCode" placeholder="6 位验证码" maxlength="6" style="flex:1;" />
+        <button class="btn btn-outline" id="sendCodeBtn" style="width:auto;padding:0 14px;margin:0;font-size:13px;">获取验证码</button>
+      </div>
+    </div>
+    <div class="form-group" id="pwdGroup" style="display:none;">
+      <label>密码</label>
+      <input type="password" id="loginPassword" placeholder="密码" />
+    </div>
+    <button class="btn btn-primary" id="loginBtn">登 录</button>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button class="btn btn-outline" id="switchModeBtn" style="flex:1;font-size:13px;">切换为密码登录</button>
+      <button class="btn btn-outline" id="forgotBtn" style="flex:1;font-size:13px;">忘记密码</button>
+    </div>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- 设密码 -->
+<div class="overlay" id="setPwdModal">
+  <div class="modal">
+    <h2>🔐 设置密码</h2>
+    <p style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:14px;">首次登录，请设置密码。至少 8 位，包含字母、数字、符号中的两种。</p>
+    <div class="form-group">
+      <label>新密码</label>
+      <input type="password" id="newPwd" placeholder="至少 8 位" />
+    </div>
+    <div class="form-group">
+      <label>确认密码</label>
+      <input type="password" id="newPwdConfirm" placeholder="再次输入" />
+    </div>
+    <button class="btn btn-success" id="setPwdBtn">确 定</button>
+    <div class="msg" id="setPwdMsg"></div>
+  </div>
+</div>
+
+<!-- 忘记密码 -->
+<div class="overlay" id="forgotModal">
+  <div class="modal">
+    <h2>🔓 重置密码</h2>
+    <div class="form-group">
+      <label>手机号</label>
+      <input type="tel" id="forgotPhone" placeholder="11 位手机号" maxlength="11" />
+    </div>
+    <div class="form-group">
+      <label>验证码</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="forgotCode" placeholder="6 位" maxlength="6" style="flex:1;" />
+        <button class="btn btn-outline" id="forgotSendBtn" style="width:auto;padding:0 14px;margin:0;font-size:13px;">获取</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>新密码</label>
+      <input type="password" id="forgotNewPwd" placeholder="至少 8 位" />
+    </div>
+    <button class="btn btn-primary" id="forgotConfirmBtn">重置密码</button>
+    <div class="msg" id="forgotMsg"></div>
+  </div>
+</div>
+
+<!-- 激活 -->
+<div class="overlay" id="activateModal">
+  <div class="modal">
+    <h2>🔓 激活账号</h2>
+    <p style="font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:16px;">请输入 30 位激活码，激活后即可使用对应模块。</p>
+    <div class="form-group">
+      <label>激活码</label>
+      <input type="text" id="activationCode" placeholder="30 位激活码" maxlength="30" style="text-transform:uppercase;font-family:monospace;" />
+    </div>
+    <button class="btn btn-success" id="activateBtn">激 活</button>
+    <div class="msg" id="activateMsg"></div>
+    <div class="activate-hint">
+      请在微信上搜索微信号为 <strong>guozaixiaowapi</strong> 的用户获取激活码
+    </div>
+  </div>
+</div>
+
+<!-- 用户信息 -->
+<div class="overlay" id="profileModal">
+  <div class="modal" style="max-width:640px;">
+    <h2>👤 用户信息</h2>
+    <div id="profileBody"></div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;">
+      <button class="btn btn-outline" id="genCodeBtn" style="display:none;">🔑 生成激活码</button>
+      <button class="btn btn-outline" id="changePhoneBtn">📱 换绑手机号</button>
+      <button class="btn btn-outline" id="changePwdBtn">🔑 修改密码</button>
+      <button class="btn btn-danger" id="deleteAccountBtn">🗑️ 注销账号</button>
+      <button class="btn btn-outline" id="logoutBtn">🚪 退出登录</button>
+    </div>
+  </div>
+</div>
+
+<!-- 生成激活码 -->
+<div class="overlay" id="genCodeModal">
+  <div class="modal">
+    <h2>🔑 生成激活码</h2>
+    <div class="form-group">
+      <label>激活码类型</label>
+      <select id="genType">
+        <option value="permission">模块权限</option>
+        <option value="cloud">云空间扩容</option>
+        <option value="admin">创建管理员</option>
+      </select>
+    </div>
+    <div id="genPermissionArea">
+      <label style="font-size:13px;color:rgba(255,255,255,0.6);">选择要激活的模块（可多选）</label>
+      <div class="perm-grid">
+        <label class="perm-item"><input type="checkbox" value="jingqu" /> 🎫 景区</label>
+        <label class="perm-item"><input type="checkbox" value="checkin" /> ✅ 签到</label>
+        <label class="perm-item"><input type="checkbox" value="game" /> 🎮 游戏</label>
+        <label class="perm-item"><input type="checkbox" value="member" /> 🛡️ 会员</label>
+      </div>
+    </div>
+    <div id="genCloudArea" style="display:none;">
+      <div class="form-group">
+        <label>增加容量（GB）</label>
+        <input type="number" id="genCloudGB" value="10" min="1" max="1000" />
+      </div>
+    </div>
+    <div id="genAdminArea" style="display:none;">
+      <div class="form-group">
+        <label>管理员角色</label>
+        <select id="genAdminRole">
+          <option value="deputy">副管理</option>
+          <option value="master">主管理</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-success" id="genConfirmBtn">生成</button>
+    <div class="msg" id="genMsg"></div>
+    <div id="genResultArea" style="display:none;">
+      <div class="code-box" id="genCodeResult"></div>
+      <button class="btn btn-outline" id="copyCodeBtn">📋 复制</button>
+    </div>
+  </div>
+</div>
+
+<!-- 换绑手机号 -->
+<div class="overlay" id="changePhoneModal">
+  <div class="modal">
+    <h2>📱 换绑手机号</h2>
+    <div class="form-group">
+      <label>新手机号</label>
+      <input type="tel" id="newPhoneInput" placeholder="11 位手机号" maxlength="11" />
+    </div>
+    <div class="form-group">
+      <label>验证码</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="newPhoneCode" placeholder="6 位" maxlength="6" style="flex:1;" />
+        <button class="btn btn-outline" id="newPhoneSendBtn" style="width:auto;padding:0 14px;margin:0;font-size:13px;">获取</button>
+      </div>
+    </div>
+    <button class="btn btn-success" id="changePhoneConfirmBtn">确定换绑</button>
+    <div class="msg" id="changePhoneMsg"></div>
+  </div>
+</div>
+
+<!-- 修改密码 -->
+<div class="overlay" id="changePwdModal">
+  <div class="modal">
+    <h2>🔑 修改密码</h2>
+    <div class="form-group">
+      <label>当前密码</label>
+      <input type="password" id="oldPwdInput" />
+    </div>
+    <div class="form-group">
+      <label>新密码</label>
+      <input type="password" id="newPwdInput" placeholder="至少 8 位" />
+    </div>
+    <button class="btn btn-primary" id="changePwdConfirmBtn">确认</button>
+    <div class="msg" id="changePwdMsg"></div>
+  </div>
+</div>
+
+<script>
+// =============================================================
+// 配置
+// =============================================================
+const API = '/main-api';
+
+// =============================================================
+// 状态
+// =============================================================
+let currentUser = null;
+let token = localStorage.getItem('token') || '';
+let loginMode = 'sms';  // sms | pwd
+
+const $ = id => document.getElementById(id);
+
+async function api(path, options = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  Object.assign(headers, options.headers || {});
+  const resp = await fetch(API + path, { ...options, headers });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(data.error || '请求失败');
+  return data;
+}
+
+function showModal(id) { $(id).classList.add('show'); }
+function hideModal(id) { $(id).classList.remove('show'); }
+
+// =============================================================
+// 启动
+// =============================================================
+async function boot() {
+  if (!token) { showModal('loginModal'); return; }
+  try {
+    const data = await api('/api/auth/me');
+    currentUser = data.user;
+    renderUser();
+    checkPermissions();
+  } catch (e) {
+    localStorage.removeItem('token');
+    token = '';
+    showModal('loginModal');
+  }
+}
+
+// =============================================================
+// 发送验证码
+// =============================================================
+function bindSendCode(btnId, phoneId, purpose) {
+  $(btnId).onclick = async function () {
+    const phone = $(phoneId).value.trim();
+    if (!/^\d{11}$/.test(phone)) {
+      alert('手机号格式错误');
+      return;
+    }
+    try {
+      await api('/api/sms/send', {
+        method: 'POST',
+        body: JSON.stringify({ phone, purpose })
+      });
+      let count = 60;
+      $(btnId).disabled = true;
+      const timer = setInterval(() => {
+        count--;
+        $(btnId).textContent = count + 's';
+        if (count <= 0) {
+          clearInterval(timer);
+          $(btnId).disabled = false;
+          $(btnId).textContent = '获取验证码';
+        }
+      }, 1000);
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+}
+
+bindSendCode('sendCodeBtn', 'loginPhone', 'login');
+bindSendCode('forgotSendBtn', 'forgotPhone', 'forgot');
+bindSendCode('newPhoneSendBtn', 'newPhoneInput', 'change_phone');
+
+// =============================================================
+// 登录模式切换
+// =============================================================
+$('switchModeBtn').onclick = function () {
+  if (loginMode === 'sms') {
+    loginMode = 'pwd';
+    $('codeGroup').style.display = 'none';
+    $('pwdGroup').style.display = 'block';
+    this.textContent = '切换为验证码登录';
+  } else {
+    loginMode = 'sms';
+    $('codeGroup').style.display = 'block';
+    $('pwdGroup').style.display = 'none';
+    this.textContent = '切换为密码登录';
+  }
+};
+
+$('loginBtn').onclick = async function () {
+  const phone = $('loginPhone').value.trim();
+  const msgEl = $('loginMsg');
+  msgEl.className = 'msg';
+  try {
+    let data;
+    if (loginMode === 'sms') {
+      const code = $('loginCode').value.trim();
+      if (!phone || !code) throw new Error('请填写手机号和验证码');
+      data = await api('/api/auth/login-sms', {
+        method: 'POST',
+        body: JSON.stringify({ phone, code })
+      });
+    } else {
+      const password = $('loginPassword').value.trim();
+      if (!phone || !password) throw new Error('请填写手机号和密码');
+      data = await api('/api/auth/login-pwd', {
+        method: 'POST',
+        body: JSON.stringify({ phone, password })
+      });
+    }
+    token = data.token;
+    localStorage.setItem('token', token);
+    currentUser = data.user;
+    hideModal('loginModal');
+    renderUser();
+    checkPermissions();
+    if (data.need_password) {
+      showModal('setPwdModal');
+    }
+  } catch (e) {
+    msgEl.textContent = e.message;
+    msgEl.className = 'msg error';
+  }
+};
+
+// =============================================================
+// 设置密码
+// =============================================================
+$('setPwdBtn').onclick = async function () {
+  const pwd = $('newPwd').value;
+  const confirm = $('newPwdConfirm').value;
+  const msgEl = $('setPwdMsg');
+  msgEl.className = 'msg';
+  if (pwd !== confirm) {
+    msgEl.textContent = '两次密码不一致';
+    msgEl.className = 'msg error';
+    return;
+  }
+  try {
+    await api('/api/auth/set-password', {
+      method: 'POST',
+      body: JSON.stringify({ password: pwd })
+    });
+    msgEl.textContent = '✅ 设置成功';
+    msgEl.className = 'msg success';
+    setTimeout(() => hideModal('setPwdModal'), 800);
+  } catch (e) {
+    msgEl.textContent = e.message;
+    msgEl.className = 'msg error';
+  }
+};
+
+// =============================================================
+// 忘记密码
+// =============================================================
+$('forgotBtn').onclick = () => { hideModal('loginModal'); showModal('forgotModal'); };
+
+$('forgotConfirmBtn').onclick = async function () {
+  const phone = $('forgotPhone').value.trim();
+  const code = $('forgotCode').value.trim();
+  const newPwd = $('forgotNewPwd').value;
+  const msgEl = $('forgotMsg');
+  msgEl.className = 'msg';
+  try {
+    await api('/api/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ phone, code, new_password: newPwd })
+    });
+    msgEl.textContent = '✅ 密码已重置，请重新登录';
+    msgEl.className = 'msg success';
+    setTimeout(() => {
+      hideModal('forgotModal');
+      showModal('loginModal');
+    }, 1200);
+  } catch (e) {
+    msgEl.textContent = e.message;
+    msgEl.className = 'msg error';
+  }
+};
+
+// =============================================================
+// 渲染用户
+// =============================================================
+function renderUser() {
+  if (!currentUser) return;
+  $('userArea').style.display = 'flex';
+  const roleLabel = { super: '超级管理员', master: '主管理', deputy: '副管理', user: '用户' }[currentUser.role] || '用户';
+  $('userName').textContent = currentUser.name || currentUser.phone;
+  $('welcomeTitle').textContent = '欢迎，' + (currentUser.name || currentUser.phone);
+  $('welcomeSub').textContent = '角色：' + roleLabel;
+  $('cardGrid').style.display = 'grid';
+  $('cloudBar').style.display = 'flex';
+
+  const used = (currentUser.cloud_used || 0) / 1073741824;
+  const limit = (currentUser.cloud_limit || 2147483648) / 1073741824;
+  $('cloudValue').textContent = `${used.toFixed(2)} GB / ${limit.toFixed(2)} GB`;
+}
+
+// =============================================================
+// 权限检查
+// =============================================================
+function checkPermissions() {
+  if (!currentUser) return;
+  const perms = currentUser.permissions || [];
+  const role = currentUser.role;
+  const isAdmin = ['super', 'master', 'deputy'].includes(role);
+
+  document.querySelectorAll('.card').forEach(card => {
+    const p = card.dataset.perm;
+    let hasPerm = isAdmin;
+
+    if (p === 'member') {
+      hasPerm = currentUser.member_authorized || role === 'super';
+    } else {
+      if (role === 'user') {
+        hasPerm = perms.includes(p);
+      }
+    }
+
+    if (!hasPerm) {
+      card.classList.add('locked');
+    } else {
+      card.classList.remove('locked');
+    }
+  });
+}
+
+// =============================================================
+// 卡片点击
+// =============================================================
+document.querySelectorAll('.card').forEach(card => {
+  card.onclick = function () {
+    const p = this.dataset.perm;
+    if (!currentUser) { showModal('loginModal'); return; }
+
+    const role = currentUser.role;
+    const isAdmin = ['super', 'master', 'deputy'].includes(role);
+    const perms = currentUser.permissions || [];
+    let hasPerm = isAdmin;
+
+    if (p === 'member') {
+      hasPerm = currentUser.member_authorized || role === 'super';
+    } else {
+      if (role === 'user') hasPerm = perms.includes(p);
+    }
+
+    if (!hasPerm) {
+      showModal('activateModal');
+      return;
+    }
+
+    const phone = encodeURIComponent(currentUser.phone);
+    const name = encodeURIComponent(currentUser.name || '');
+    const r = encodeURIComponent(role);
+    const urlMap = {
+      jingqu: '/jingqu?phone=' + phone + '&name=' + name + '&role=' + r,
+      member: '/member?phone=' + phone + '&name=' + name + '&role=' + r,
+      checkin: '/checkin?phone=' + phone + '&name=' + name,
+      game: '/game?phone=' + phone + '&name=' + name + '&role=' + r
+    };
+    window.location.href = urlMap[p];
+  };
+});
+
+// =============================================================
+// 激活
+// =============================================================
+$('activateBtn').onclick = async function () {
+  const code = $('activationCode').value.trim();
+  const msgEl = $('activateMsg');
+  msgEl.className = 'msg';
+  try {
+    const data = await api('/api/activation/use', {
+      method: 'POST',
+      body: JSON.stringify({ code })
+    });
+    currentUser = data.user;
+    msgEl.textContent = '✅ 激活成功！';
+    msgEl.className = 'msg success';
+    setTimeout(() => {
+      hideModal('activateModal');
+      renderUser();
+      checkPermissions();
+    }, 800);
+  } catch (e) {
+    msgEl.textContent = e.message;
+    msgEl.className = 'msg error';
+  }
+};
+
+// =============================================================
+// 头像
+// =============================================================
+$('avatarBtn').onclick = function () {
+  if (!currentUser) { showModal('loginModal'); return; }
+  renderProfile();
+  showModal('profileModal');
+};
+
+function renderProfile() {
+  const roleLabel = { super: '超级管理员', master: '主管理', deputy: '副管理', user: '用户' }[currentUser.role] || '用户';
+  const perms = (currentUser.permissions || []).map(p => ({
+    jingqu: '🎫 景区管理器', member: '🛡️ 会员中心',
+    checkin: '✅ 签到中心', game: '🎮 游戏中心'
+  })[p] || p).join('、') || '无';
+
+  let html = `
+    <div style="font-size:14px;line-height:2;">
+      <div>📱 手机号：<strong>${currentUser.phone}</strong></div>
+      <div>👤 姓名：${currentUser.name || '未设置'}</div>
+      <div>🎭 角色：<span class="role-tag ${currentUser.role}">${roleLabel}</span></div>
+      <div>🔑 已激活模块：${perms}</div>
+      <div>🛡️ 会员中心：${currentUser.member_authorized ? '已授权' : '未授权'}</div>
+      <div>☁️ 云空间：${((currentUser.cloud_used||0)/1073741824).toFixed(2)} GB / ${((currentUser.cloud_limit||2147483648)/1073741824).toFixed(2)} GB</div>
+    </div>
+  `;
+
+  if (['super', 'master', 'deputy'].includes(currentUser.role)) {
+    html += `<div style="margin-top:18px;"><h3 style="font-size:15px;color:#4facfe;margin-bottom:8px;">👥 全部用户</h3>
+      <div id="allUsersArea" style="max-height:240px;overflow-y:auto;">加载中 ...</div></div>`;
+  }
+
+  $('profileBody').innerHTML = html;
+  $('genCodeBtn').style.display = ['super', 'master', 'deputy'].includes(currentUser.role) ? 'block' : 'none';
+
+  if (['super', 'master', 'deputy'].includes(currentUser.role)) {
+    loadAllUsers();
+  }
+}
+
+async function loadAllUsers() {
+  try {
+    const data = await api('/api/users/list');
+    const users = data.users || [];
+    let html = `<table class="user-table"><thead><tr><th>手机号</th><th>姓名</th><th>角色</th><th>权限</th></tr></thead><tbody>`;
+    users.forEach(u => {
+      const roleLabel = { super: '超管', master: '主管理', deputy: '副管理', user: '用户' }[u.role] || '用户';
+      const p = (u.permissions || []).length;
+      html += `<tr>
+        <td>${u.phone}</td>
+        <td>${u.name || '-'}</td>
+        <td><span class="role-tag ${u.role}">${roleLabel}</span></td>
+        <td>${p} 个</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+    $('allUsersArea').innerHTML = html;
+  } catch (e) {
+    $('allUsersArea').innerHTML = '加载失败：' + e.message;
+  }
+}
+
+// =============================================================
+// 生成激活码
+// =============================================================
+$('genCodeBtn').onclick = () => {
+  $('genResultArea').style.display = 'none';
+  $('genMsg').textContent = '';
+  showModal('genCodeModal');
+};
+
+$('genType').onchange = function () {
+  $('genPermissionArea').style.display = this.value === 'permission' ? 'block' : 'none';
+  $('genCloudArea').style.display = this.value === 'cloud' ? 'block' : 'none';
+  $('genAdminArea').style.display = this.value === 'admin' ? 'block' : 'none';
+};
+
+$('genConfirmBtn').onclick = async function () {
+  const type = $('genType').value;
+  let body = { type };
+  if (type === 'permission') {
+    const perms = Array.from(document.querySelectorAll('#genPermissionArea input:checked')).map(i => i.value);
+    if (perms.length === 0) { $('genMsg').textContent = '请至少选择一个模块'; $('genMsg').className = 'msg error'; return; }
+    body.permissions = perms;
+  } else if (type === 'cloud') {
+    const gb = parseInt($('genCloudGB').value);
+    if (!gb || gb <= 0) { $('genMsg').textContent = '请输入有效容量'; $('genMsg').className = 'msg error'; return; }
+    body.cloud_gb = gb;
+  } else if (type === 'admin') {
+    body.admin_role = $('genAdminRole').value;
+  }
+  try {
+    const data = await api('/api/activation/create', {
+      method: 'POST',
+      body: JSON.stringify(body)
+    });
+    $('genCodeResult').textContent = data.code;
+    $('genResultArea').style.display = 'block';
+    $('genMsg').textContent = '✅ 生成成功';
+    $('genMsg').className = 'msg success';
+  } catch (e) {
+    $('genMsg').textContent = e.message;
+    $('genMsg').className = 'msg error';
+  }
+};
+
+$('copyCodeBtn').onclick = function () {
+  navigator.clipboard.writeText($('genCodeResult').textContent);
+  $('genMsg').textContent = '✅ 已复制';
+  $('genMsg').className = 'msg success';
+};
+
+// =============================================================
+// 换绑手机号
+// =============================================================
+$('changePhoneBtn').onclick = () => { hideModal('profileModal'); showModal('changePhoneModal'); };
+
+$('changePhoneConfirmBtn').onclick = async function () {
+  const newPhone = $('newPhoneInput').value.trim();
+  const code = $('newPhoneCode').value.trim();
+  const msgEl = $('changePhoneMsg');
+  try {
+    await api('/api/auth/change-phone', {
+      method: 'POST',
+      body: JSON.stringify({ new_phone: newPhone, code })
+    });
+    msgEl.textContent = '✅ 换绑成功，请重新登录';
+    msgEl.className = 'msg success';
+    setTimeout(() => {
+      localStorage.removeItem('token');
+      location.reload();
+    }, 1500);
+  } catch (e) {
+    msgEl.textContent = e.message;
+    msgEl.className = 'msg error';
+  }
+};
+
+// =============================================================
+// 修改密码
+// =============================================================
+$('changePwdBtn').onclick = () => { hideModal('profileModal'); showModal('changePwdModal'); };
+
+$('changePwdConfirmBtn').onclick = async function () {
+  const oldPwd = $('oldPwdInput').value;
+  const newPwd = $('newPwdInput').value;
+  const msgEl = $('changePwdMsg');
+  try {
+    await api('/api/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ old_password: oldPwd, new_password: newPwd })
+    });
+    msgEl.textContent = '✅ 修改成功';
+    msgEl.className = 'msg success';
+    setTimeout(() => hideModal('changePwdModal'), 1000);
+  } catch (e) {
+    msgEl.textContent = e.message;
+    msgEl.className = 'msg error';
+  }
+};
+
+// =============================================================
+// 注销
+// =============================================================
+$('deleteAccountBtn').onclick = async function () {
+  if (!confirm('确定注销账号？此操作不可恢复！')) return;
+  try {
+    await api('/api/auth/delete-account', { method: 'POST' });
+    localStorage.removeItem('token');
+    location.reload();
+  } catch (e) {
+    alert('注销失败：' + e.message);
+  }
+};
+
+// =============================================================
+// 云空间扩容
+// =============================================================
+$('cloudExpandBtn').onclick = () => {
+  if (!currentUser) { showModal('loginModal'); return; }
+  showModal('activateModal');
+  $('activateMsg').textContent = '请输入云空间激活码';
+  $('activateMsg').className = 'msg';
+};
+
+// =============================================================
+// 退出
+// =============================================================
+$('logoutBtn').onclick = function () {
+  if (!confirm('确定退出？')) return;
+  localStorage.removeItem('token');
+  location.reload();
+};
+
+// =============================================================
+// 启动
+// =============================================================
+boot();
+</script>
+
+</body>
+</html>
