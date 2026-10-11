@@ -1,0 +1,1797 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🎓 游戏·学习中心</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Segoe UI','PingFang SC',Roboto,sans-serif; background:linear-gradient(145deg,#0b0e1a 0%,#1a1f33 100%); min-height:100vh; color:#fff; overflow-x:hidden; padding:16px; }
+.app-container { max-width:1400px; margin:0 auto; }
+.btn { display:inline-block; padding:8px 24px; border-radius:30px; border:none; font-weight:600; font-size:14px; cursor:pointer; transition:all 0.3s ease; background:rgba(255,255,255,0.1); color:#fff; border:1px solid rgba(255,255,255,0.06); }
+.btn:hover { background:rgba(255,255,255,0.2); transform:translateY(-2px); }
+.btn-primary { background:linear-gradient(135deg,#f093fb,#f5576c); border:none; box-shadow:0 4px 15px rgba(245,87,108,0.3); }
+.btn-success { background:linear-gradient(135deg,#4ecdc4,#44b39d); border:none; }
+.btn-danger { background:linear-gradient(135deg,#ff6b6b,#ee5a24); border:none; }
+.btn-warning { background:linear-gradient(135deg,#ffd700,#f0a500); border:none; color:#1a1f33; }
+.btn-sm { padding:4px 14px; font-size:12px; }
+.btn-block { display:block; width:100%; }
+input, textarea, select { background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); border-radius:30px; padding:10px 18px; color:#fff; font-size:14px; outline:none; width:100%; max-width:300px; font-family:inherit; }
+input:focus, textarea:focus, select:focus { border-color:#f5576c; background:rgba(255,255,255,0.12); }
+textarea { border-radius:16px; resize:vertical; min-height:60px; max-width:100%; }
+select option { background:#1a1f33; }
+.form-group { margin-bottom:16px; }
+.form-group label { display:block; margin-bottom:4px; color:rgba(255,255,255,0.6); font-size:13px; }
+.navbar { display:flex; justify-content:space-between; align-items:center; padding:12px 20px; background:rgba(255,255,255,0.06); backdrop-filter:blur(20px); border-radius:24px; border:1px solid rgba(255,255,255,0.08); margin-bottom:20px; flex-wrap:wrap; gap:10px; }
+.navbar .brand { font-size:22px; font-weight:800; background:linear-gradient(135deg,#f093fb,#f5576c,#4facfe); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.navbar .nav-links { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+.navbar .nav-links .nav-item { padding:6px 16px; border-radius:30px; cursor:pointer; color:rgba(255,255,255,0.6); border:1px solid transparent; transition:0.3s; font-weight:500; font-size:14px; }
+.navbar .nav-links .nav-item:hover { background:rgba(255,255,255,0.08); color:#fff; }
+.navbar .nav-links .nav-item.active { background:rgba(255,255,255,0.12); border-color:rgba(255,255,255,0.15); color:#fff; }
+.navbar .user-info { display:flex; align-items:center; gap:12px; font-size:14px; color:rgba(255,255,255,0.7); flex-wrap:wrap; }
+.navbar .user-info .role-badge { background:rgba(255,215,0,0.15); padding:2px 12px; border-radius:30px; font-size:12px; border:1px solid rgba(255,215,0,0.2); }
+.navbar .user-info .role-badge.admin { background:rgba(245,87,108,0.2); border-color:rgba(245,87,108,0.3); color:#f5576c; }
+.navbar .user-info .role-badge.sub { background:rgba(79,172,254,0.2); border-color:rgba(79,172,254,0.3); color:#4facfe; }
+.page { display:none; animation:fadeIn 0.3s ease; }
+.page.active { display:block; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+.game-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:14px; }
+.game-card { background:rgba(255,255,255,0.05); border-radius:20px; padding:16px 10px; text-align:center; cursor:pointer; transition:all 0.3s; border:1px solid rgba(255,255,255,0.06); min-height:130px; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.game-card:hover { transform:translateY(-6px); border-color:rgba(255,255,255,0.15); background:rgba(255,255,255,0.08); }
+.game-card .icon { font-size:34px; margin-bottom:4px; }
+.game-card .name { font-weight:700; font-size:14px; }
+.game-card .score { font-size:11px; color:rgba(255,255,255,0.4); margin-top:2px; }
+.learning-list { display:flex; flex-direction:column; gap:12px; }
+.learning-item { background:rgba(255,255,255,0.04); border-radius:16px; padding:16px 20px; display:flex; justify-content:space-between; align-items:center; border:1px solid rgba(255,255,255,0.04); flex-wrap:wrap; gap:10px; }
+.learning-item .title { font-weight:600; }
+.learning-item .progress-bar { width:120px; height:6px; background:rgba(255,255,255,0.1); border-radius:10px; overflow:hidden; }
+.learning-item .progress-bar .fill { height:100%; background:linear-gradient(135deg,#4facfe,#f093fb); border-radius:10px; transition:width 0.5s; }
+.admin-tabs { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+.admin-tabs .tab-btn { padding:6px 20px; border-radius:30px; border:1px solid rgba(255,255,255,0.1); background:transparent; color:rgba(255,255,255,0.6); cursor:pointer; transition:0.3s; font-size:14px; }
+.admin-tabs .tab-btn.active { background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.2); color:#fff; }
+.admin-panel { display:none; }
+.admin-panel.active { display:block; }
+.course-card { background:rgba(255,255,255,0.04); border-radius:16px; padding:16px 20px; margin-bottom:12px; border:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+.course-card .info { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+.course-card .info .title { font-weight:600; font-size:16px; }
+.course-card .info .level { background:rgba(255,255,255,0.08); padding:2px 12px; border-radius:30px; font-size:12px; color:rgba(255,255,255,0.6); }
+.course-card .info .section-count { font-size:13px; color:rgba(255,255,255,0.4); }
+.modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); z-index:999; justify-content:center; align-items:center; }
+.modal-overlay.show { display:flex; }
+.modal-box { background:#1a1f33; border-radius:28px; padding:30px; max-width:700px; width:90%; border:1px solid rgba(255,255,255,0.08); position:relative; max-height:80vh; overflow-y:auto; }
+.modal-box .close-btn { position:absolute; top:12px; right:16px; font-size:24px; cursor:pointer; color:rgba(255,255,255,0.4); background:none; border:none; }
+.modal-box h3 { margin-bottom:12px; color:#f093fb; }
+.modal-box .btn-group { display:flex; gap:10px; justify-content:flex-end; margin-top:16px; flex-wrap:wrap; }
+.game-container { background:rgba(255,255,255,0.04); border-radius:28px; padding:24px; border:1px solid rgba(255,255,255,0.06); margin-top:10px; min-height:400px; }
+.game-container .game-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
+.game-container .game-header .game-title { font-size:22px; font-weight:700; display:flex; align-items:center; gap:10px; }
+.game-controls button { padding:6px 18px; border-radius:30px; border:none; background:rgba(255,255,255,0.1); color:#fff; font-weight:600; font-size:13px; cursor:pointer; }
+.game-controls button.primary { background:linear-gradient(135deg,#f093fb,#f5576c); }
+.game-area { display:flex; flex-direction:column; align-items:center; min-height:200px; }
+.score-display { font-size:18px; font-weight:600; color:rgba(255,255,255,0.8); margin-bottom:12px; background:rgba(255,255,255,0.06); padding:8px 20px; border-radius:30px; display:inline-block; }
+.score-display span { color:#f5576c; }
+.tic-tac-toe-board { display:grid; grid-template-columns:repeat(3,80px); grid-template-rows:repeat(3,80px); gap:8px; justify-content:center; }
+.tic-tac-toe-board .cell { background:rgba(255,255,255,0.08); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:40px; font-weight:700; cursor:pointer; border:1px solid rgba(255,255,255,0.04); }
+.tic-tac-toe-board .cell.x { color:#4facfe; }
+.tic-tac-toe-board .cell.o { color:#f5576c; }
+.tic-tac-toe-board .cell.win { background:rgba(255,215,0,0.2); border-color:gold; }
+.memory-board { display:grid; grid-template-columns:repeat(4,80px); grid-template-rows:repeat(4,80px); gap:8px; justify-content:center; }
+.memory-card { background:rgba(255,255,255,0.08); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:32px; cursor:pointer; user-select:none; }
+.memory-card.flipped { background:rgba(255,255,255,0.15); }
+.memory-card.matched { background:rgba(78,205,196,0.2); opacity:0.6; cursor:default; }
+.game2048-board { display:grid; grid-template-columns:repeat(4,80px); grid-template-rows:repeat(4,80px); gap:8px; justify-content:center; }
+.tile-2048 { border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:800; background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.2); }
+.tile-2048[data-value="2"] { background:#eee4da; color:#776e65; }
+.tile-2048[data-value="4"] { background:#ede0c8; color:#776e65; }
+.tile-2048[data-value="8"] { background:#f2b179; color:#f9f6f2; }
+.tile-2048[data-value="16"] { background:#f59563; color:#f9f6f2; }
+.tile-2048[data-value="32"] { background:#f67c5f; color:#f9f6f2; }
+.tile-2048[data-value="64"] { background:#f65e3b; color:#f9f6f2; }
+.tile-2048[data-value="128"] { background:#edcf72; color:#f9f6f2; }
+.tile-2048[data-value="256"] { background:#edcc61; color:#f9f6f2; }
+.tile-2048[data-value="512"] { background:#edc850; color:#f9f6f2; }
+.tile-2048[data-value="1024"] { background:#edc53f; color:#f9f6f2; font-size:22px; }
+.tile-2048[data-value="2048"] { background:#edc22e; color:#f9f6f2; font-size:22px; }
+.minesweeper-board { display:grid; gap:4px; justify-content:center; }
+.mine-cell { width:40px; height:40px; background:rgba(255,255,255,0.08); border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; cursor:pointer; }
+.mine-cell.revealed { background:rgba(255,255,255,0.05); cursor:default; }
+.mine-cell.flagged { background:rgba(255,215,0,0.15); }
+.mine-cell.mine-exploded { background:rgba(245,87,108,0.4); }
+.puzzle-board { display:grid; gap:4px; justify-content:center; }
+.puzzle-piece { width:80px; height:80px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:700; cursor:pointer; user-select:none; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.06); }
+.puzzle-piece.empty { background:transparent; border:1px dashed rgba(255,255,255,0.1); cursor:default; }
+.sudoku-board { display:grid; grid-template-columns:repeat(9,44px); grid-template-rows:repeat(9,44px); gap:2px; justify-content:center; background:rgba(255,255,255,0.05); padding:8px; border-radius:12px; }
+.sudoku-cell { background:rgba(255,255,255,0.06); border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700; cursor:pointer; color:#fff; }
+.sudoku-cell.given { color:#4facfe; cursor:default; }
+.sudoku-cell.selected { background:rgba(255,215,0,0.25); border:2px solid gold; }
+.match3-board { display:grid; gap:4px; justify-content:center; }
+.match3-cell { width:48px; height:48px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:24px; cursor:pointer; border:2px solid transparent; }
+.match3-cell.selected { border-color:#ffd700; transform:scale(1.08); }
+.typing-word { font-size:42px; font-weight:800; letter-spacing:4px; background:rgba(255,255,255,0.05); padding:20px 40px; border-radius:20px; text-align:center; margin:10px 0; color:#4facfe; font-family:'Courier New',monospace; }
+.typing-input { background:rgba(255,255,255,0.08); border:2px solid rgba(255,255,255,0.1); border-radius:30px; padding:12px 24px; font-size:24px; color:#fff; text-align:center; width:200px; font-family:'Courier New',monospace; outline:none; }
+.game-canvas { border-radius:16px; background:#0d1120; max-width:100%; height:auto; touch-action:none; }
+.link-board { display:grid; gap:4px; justify-content:center; }
+.link-cell { width:52px; height:52px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:28px; cursor:pointer; user-select:none; background:rgba(255,255,255,0.06); border:2px solid transparent; }
+.link-cell.selected { border-color:#ffd700; transform:scale(1.06); }
+.link-cell.empty { background:transparent; cursor:default; }
+.rps-buttons { display:flex; gap:16px; justify-content:center; margin:12px 0; flex-wrap:wrap; }
+.rps-btn { font-size:48px; padding:16px 24px; border-radius:20px; border:2px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.05); cursor:pointer; min-width:80px; text-align:center; }
+.rps-result { font-size:20px; font-weight:600; padding:12px 24px; border-radius:16px; background:rgba(255,255,255,0.05); display:inline-block; margin:8px 0; }
+.guess-input-group { display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; }
+.guess-input-group input { max-width:120px; text-align:center; font-size:24px; }
+.guess-history { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:400px; margin:8px auto; }
+.guess-history .guess-item { padding:4px 12px; border-radius:12px; font-size:14px; font-weight:600; background:rgba(255,255,255,0.06); }
+.guess-history .guess-item.high { color:#ff6b6b; }
+.guess-history .guess-item.low { color:#4facfe; }
+.guess-history .guess-item.correct { color:#4ecdc4; }
+.game-cell { width:50px; height:50px; background:rgba(255,255,255,0.08); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:24px; cursor:pointer; user-select:none; border:1px solid rgba(255,255,255,0.04); }
+.game-cell.mole { background:#8B4513; font-size:30px; }
+.game-grid-sm { display:grid; gap:6px; justify-content:center; }
+.ai-chat-container { background:rgba(255,255,255,0.03); border-radius:24px; border:1px solid rgba(255,255,255,0.06); overflow:hidden; display:flex; flex-direction:column; height:500px; max-height:60vh; }
+.ai-messages { flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:16px; }
+.ai-message { display:flex; gap:12px; max-width:85%; }
+.ai-message.user { align-self:flex-end; flex-direction:row-reverse; }
+.ai-message.assistant { align-self:flex-start; }
+.ai-message .avatar { width:36px; height:36px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:18px; background:rgba(255,255,255,0.06); }
+.ai-message.user .avatar { background:linear-gradient(135deg,#f093fb,#f5576c); }
+.ai-message.assistant .avatar { background:linear-gradient(135deg,#4facfe,#4ecdc4); }
+.ai-message .bubble { background:rgba(255,255,255,0.06); border-radius:16px; padding:12px 18px; line-height:1.6; font-size:15px; word-break:break-word; }
+.ai-message.user .bubble { background:rgba(245,87,108,0.15); }
+.ai-message.assistant .bubble { background:rgba(79,172,254,0.08); }
+.ai-input-area { display:flex; gap:10px; padding:16px 20px; background:rgba(255,255,255,0.04); border-top:1px solid rgba(255,255,255,0.06); flex-wrap:wrap; }
+.ai-input-area input { flex:1; max-width:none; border-radius:30px; padding:10px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); color:#fff; font-size:15px; outline:none; min-width:120px; }
+.ai-quick-questions { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; justify-content:center; }
+.ai-quick-questions .quick-btn { padding:6px 16px; border-radius:30px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.6); font-size:13px; cursor:pointer; }
+.ai-toolbar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; justify-content:space-between; align-items:center; }
+.ai-status { font-size:13px; color:rgba(255,255,255,0.4); display:flex; align-items:center; gap:6px; }
+.ai-status .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#ff6b6b; }
+.ai-status .dot.online { background:#4ecdc4; }
+.ai-welcome { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:rgba(255,255,255,0.3); text-align:center; padding:40px 20px; }
+.ai-welcome .icon { font-size:56px; margin-bottom:16px; }
+.ai-welcome h3 { color:rgba(255,255,255,0.6); font-weight:400; margin-bottom:8px; }
+.ai-welcome p { font-size:14px; max-width:360px; line-height:1.6; }
+.disabled-notice { text-align:center; padding:60px 20px; color:rgba(255,255,255,0.4); font-size:18px; background:rgba(255,255,255,0.03); border-radius:24px; border:1px solid rgba(255,255,255,0.06); }
+.disabled-notice .big-icon { font-size:48px; margin-bottom:16px; }
+.login-box { background:rgba(255,255,255,0.06); backdrop-filter:blur(20px); border-radius:32px; padding:40px 30px; max-width:400px; width:100%; border:1px solid rgba(255,255,255,0.08); text-align:center; }
+.login-box h2 { font-size:26px; margin-bottom:8px; background:linear-gradient(135deg,#f093fb,#f5576c); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.login-box .sub { color:rgba(255,255,255,0.4); font-size:14px; margin-bottom:20px; }
+.login-box input { max-width:100%; margin-bottom:12px; }
+.login-box .btn { width:100%; }
+.login-box .error-msg { color:#ff6b6b; font-size:13px; margin-top:10px; min-height:20px; }
+.content-section { margin-bottom:20px; padding:12px; background:rgba(255,255,255,0.04); border-radius:12px; }
+.content-section .question { font-weight:600; margin-bottom:6px; }
+.content-section .options label { display:block; margin:4px 0; color:rgba(255,255,255,0.8); cursor:pointer; }
+.content-section .options input[type="radio"] { margin-right:8px; width:auto; }
+.content-section .result.correct { color:#4ecdc4; }
+.content-section .result.wrong { color:#ff6b6b; }
+@media (max-width:768px) {
+  .game-grid { grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); }
+  .navbar .brand { font-size:18px; }
+  .navbar .nav-links .nav-item { font-size:12px; padding:4px 12px; }
+  .tic-tac-toe-board { grid-template-columns:repeat(3,60px); grid-template-rows:repeat(3,60px); }
+  .memory-board { grid-template-columns:repeat(4,60px); grid-template-rows:repeat(4,60px); }
+  .game2048-board { grid-template-columns:repeat(4,60px); grid-template-rows:repeat(4,60px); }
+  .mine-cell { width:32px; height:32px; font-size:13px; }
+  .puzzle-piece { width:60px; height:60px; font-size:20px; }
+  .sudoku-board { grid-template-columns:repeat(9,34px); grid-template-rows:repeat(9,34px); }
+  .sudoku-cell { font-size:16px; }
+  .match3-cell { width:38px; height:38px; font-size:18px; }
+  .link-cell { width:40px; height:40px; font-size:20px; }
+  .typing-word { font-size:28px; padding:14px 20px; }
+  .rps-btn { font-size:32px; padding:12px 16px; min-width:60px; }
+}
+@media (max-width:480px) {
+  .game-grid { grid-template-columns:repeat(2,1fr); gap:10px; }
+  .game-card { min-height:90px; padding:10px 4px; }
+  .game-card .icon { font-size:24px; }
+  .game-card .name { font-size:11px; }
+}
+</style>
+</head>
+<body>
+<div class="app-container" id="app">
+
+  <!-- 加载页 -->
+  <div id="loadingPage" style="display:flex;justify-content:center;align-items:center;min-height:80vh;">
+    <div style="color:rgba(255,255,255,0.5);font-size:16px;">⏳ 正在验证身份 ...</div>
+  </div>
+
+  <!-- 登录页（备用） -->
+  <div id="loginPage" style="display:none;justify-content:center;align-items:center;min-height:80vh;">
+    <div class="login-box">
+      <h2>🎓 游戏·学习中心</h2>
+      <p class="sub">手机号 + 密码登录</p>
+      <div class="form-group"><input type="tel" id="loginPhone" placeholder="11位手机号" maxlength="11"></div>
+      <div class="form-group"><input type="password" id="loginPassword" placeholder="密码"></div>
+      <button class="btn btn-primary btn-block" id="loginBtn">登 录</button>
+      <div id="loginError" class="error-msg"></div>
+      <div style="margin-top:14px;"><a href="/" style="color:#4facfe;font-size:13px;text-decoration:none;">← 返回主界面</a></div>
+    </div>
+  </div>
+
+  <!-- 学习模态框 -->
+  <div class="modal-overlay" id="learningModal">
+    <div class="modal-box">
+      <button class="close-btn" id="closeLearningModal">&times;</button>
+      <h3 id="learningModalTitle">📖 课程学习</h3>
+      <div id="learningContent"></div>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="finishLearningBtn">✅ 学完了，记录进度</button>
+        <button class="btn btn-sm" id="closeLearningModalBtn">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 课程编辑模态框 -->
+  <div class="modal-overlay" id="courseEditorModal">
+    <div class="modal-box">
+      <button class="close-btn" id="closeCourseEditor">&times;</button>
+      <h3 id="courseEditorTitle">📝 编辑课程</h3>
+      <div class="form-group"><label>课程ID</label><input type="text" id="courseIdInput" readonly></div>
+      <div class="form-group"><label>标题</label><input type="text" id="courseTitleInput"></div>
+      <div class="form-group"><label>级别</label><input type="text" id="courseLevelInput"></div>
+      <div class="form-group"><label>章节</label><div id="sectionsContainer"></div>
+        <button class="btn btn-sm btn-success" id="addSectionBtn">➕ 添加章节</button>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="saveCourseBtn">💾 保存</button>
+        <button class="btn btn-sm" id="cancelCourseEditorBtn">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI 设置模态框 -->
+  <div class="modal-overlay" id="aiSettingsModal">
+    <div class="modal-box" style="max-width:500px;">
+      <button class="close-btn" id="aiCloseSettingsBtn">&times;</button>
+      <h3>🤖 AI 助手设置</h3>
+      <div class="form-group"><label>API Key</label><input type="password" id="aiApiKeyInput" placeholder="sk-..." style="max-width:100%;"></div>
+      <div class="form-group"><label>模型</label>
+        <select id="aiModelSelect" style="max-width:100%;">
+          <option value="deepseek-v4-flash">deepseek-v4-flash</option>
+          <option value="deepseek-chat">deepseek-chat</option>
+          <option value="gpt-4o-mini">gpt-4o-mini</option>
+          <option value="gpt-4o">gpt-4o</option>
+        </select>
+      </div>
+      <div class="form-group"><label>API 地址</label><input type="text" id="aiApiUrlInput" value="https://api.deepseek.com/v1/chat/completions" style="max-width:100%;"></div>
+      <div id="aiSettingsStatus" style="font-size:13px;color:rgba(255,255,255,0.4);min-height:20px;margin-bottom:8px;"></div>
+      <div class="btn-group" style="justify-content:center;">
+        <button class="btn btn-primary" id="aiSaveSettingsBtn">💾 保存</button>
+        <button class="btn btn-sm" id="aiCancelSettingsBtn">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主界面 -->
+  <div id="mainApp" style="display:none;">
+    <nav class="navbar">
+      <div class="brand">🎮 游戏·学习中心</div>
+      <div class="nav-links">
+        <span class="nav-item active" data-page="games">🎯 游戏</span>
+        <span class="nav-item" data-page="ai">🤖 AI助手</span>
+        <span class="nav-item" data-page="learning">📚 学习</span>
+        <span class="nav-item" data-page="admin" id="adminNav" style="display:none;">⚙️ 管理</span>
+        <span class="nav-item" id="backHomeBtn">🏠 返回主界面</span>
+        <span class="nav-item" id="logoutBtn">🚪 退出</span>
+      </div>
+      <div class="user-info">
+        <span id="userPhoneDisplay"></span>
+        <span class="role-badge" id="userRoleBadge">游客</span>
+      </div>
+    </nav>
+
+    <!-- 游戏页 -->
+    <div class="page active" id="pageGames">
+      <h2 style="margin-bottom:16px;">🎯 游戏中心 <span style="font-size:14px;color:rgba(255,255,255,0.3);">共17款</span></h2>
+      <div id="gamesContainer"><div class="game-grid" id="gameGrid"></div></div>
+      <div id="gamesDisabled" class="disabled-notice" style="display:none;">
+        <div class="big-icon">🚫</div>
+        <p>游戏功能已被禁用</p>
+      </div>
+      <div class="game-container" id="gamePlayContainer" style="display:none;">
+        <div class="game-header">
+          <div class="game-title"><span id="gameIcon">🎮</span> <span id="gameName">游戏</span></div>
+          <div class="game-controls">
+            <button class="primary" id="restartGameBtn">🔄 重新开始</button>
+            <button id="closeGameBtn">✕ 关闭</button>
+          </div>
+        </div>
+        <div class="game-area" id="gameArea"></div>
+      </div>
+    </div>
+
+    <!-- AI 页 -->
+    <div class="page" id="pageAI">
+      <h2 style="margin-bottom:8px;">🤖 AI 助手</h2>
+      <div id="aiDisabled" class="disabled-notice" style="display:none;">
+        <div class="big-icon">🚫</div>
+        <p>AI 功能已被禁用</p>
+      </div>
+      <div id="aiEnabled">
+        <div class="ai-toolbar">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <span class="ai-status" id="aiStatus"><span class="dot" id="aiStatusDot"></span><span id="aiStatusText">未连接</span></span>
+            <button class="btn btn-sm" id="aiSettingsBtn">⚙️ 设置</button>
+          </div>
+          <button class="btn btn-sm btn-danger" id="aiClearChatBtn">🗑️ 清空对话</button>
+        </div>
+        <div class="ai-chat-container">
+          <div class="ai-messages" id="aiMessages">
+            <div class="ai-welcome" id="aiWelcome">
+              <div class="icon">🤖</div>
+              <h3>你好！我是 AI 学习助手</h3>
+              <p>我可以帮你查资料、解答问题、解释概念。</p>
+            </div>
+          </div>
+          <div class="ai-input-area">
+            <input type="text" id="aiInput" placeholder="输入你的问题... (Enter 发送)">
+            <button class="btn btn-primary" id="aiSendBtn">发送</button>
+          </div>
+        </div>
+        <div class="ai-quick-questions">
+          <button class="quick-btn" data-q="什么是光合作用？">🌿 光合作用</button>
+          <button class="quick-btn" data-q="解释牛顿第一定律。">⚡ 牛顿定律</button>
+          <button class="quick-btn" data-q="英语定语从句怎么用？">📚 定语从句</button>
+          <button class="quick-btn" data-q="什么是函数？">📈 函数概念</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 学习页 -->
+    <div class="page" id="pageLearning">
+      <h2 style="margin-bottom:16px;">📚 学习中心</h2>
+      <div id="learningContainer"><div class="learning-list" id="learningList"></div></div>
+      <div id="learningDisabled" class="disabled-notice" style="display:none;">
+        <div class="big-icon">🚫</div>
+        <p>学习功能已被禁用</p>
+      </div>
+    </div>
+
+    <!-- 管理页 -->
+    <div class="page" id="pageAdmin">
+      <h2 style="margin-bottom:16px;">⚙️ 管理后台</h2>
+      <div class="admin-tabs">
+        <button class="tab-btn active" data-tab="courses">📚 课程管理</button>
+        <button class="tab-btn" data-tab="ai">🤖 AI 设置</button>
+      </div>
+      <div class="admin-panel active" id="panelCourses">
+        <div style="margin-bottom:16px;">
+          <button class="btn btn-success btn-sm" id="addCourseBtn">📚 添加课程</button>
+        </div>
+        <div id="courseListContainer"></div>
+      </div>
+      <div class="admin-panel" id="panelAI">
+        <div class="form-group"><label>API Key</label><input type="password" id="adminAiKey" placeholder="留空则不修改" style="max-width:100%;"></div>
+        <div class="form-group"><label>模型</label><input type="text" id="adminAiModel" placeholder="deepseek-v4-flash" style="max-width:100%;"></div>
+        <div class="form-group"><label>API 地址</label><input type="text" id="adminAiUrl" placeholder="https://api.deepseek.com/v1" style="max-width:100%;"></div>
+        <button class="btn btn-primary" id="adminAiSaveBtn">💾 保存 AI 配置</button>
+        <div id="adminAiMsg" style="font-size:13px;margin-top:8px;min-height:20px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// =====================================================
+// 全局
+// =====================================================
+const API = '/game-api';
+let token = localStorage.getItem('game_token') || '';
+let currentUser = null;
+let scores = {};
+let learning = {};
+let courses = [];
+let gamesList = [];
+let gameCleanup = null;
+let currentGameId = null;
+let currentLearningCourseId = null;
+let aiMessages = [];
+let aiIsLoading = false;
+
+const $ = id => document.getElementById(id);
+
+async function api(path, options = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  Object.assign(headers, options.headers || {});
+  const resp = await fetch(API + path, { ...options, headers });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(data.error || '请求失败');
+  return data;
+}
+
+// =====================================================
+// 启动
+// =====================================================
+async function boot() {
+  const params = new URLSearchParams(window.location.search);
+  const ssoPhone = params.get('phone');
+  const ssoName = params.get('name');
+  const ssoRole = params.get('role');
+
+  if (ssoPhone) {
+    try {
+      const data = await api('/api/auth/sso', {
+        method: 'POST',
+        body: JSON.stringify({ phone: ssoPhone, name: ssoName || '', role: ssoRole || 'user' })
+      });
+      token = data.token;
+      localStorage.setItem('game_token', token);
+      currentUser = data.user;
+      window.history.replaceState({}, '', window.location.pathname);
+      await initData();
+      showMain();
+      return;
+    } catch (e) { console.warn('SSO 失败', e); }
+  }
+
+  if (token) {
+    try {
+      const me = await api('/api/auth/me');
+      currentUser = me.user;
+      await initData();
+      showMain();
+      return;
+    } catch (e) {
+      localStorage.removeItem('game_token');
+      token = '';
+    }
+  }
+
+  $('loadingPage').style.display = 'none';
+  $('loginPage').style.display = 'flex';
+}
+
+async function initData() {
+  try { const d = await api('/api/courses/list'); courses = d.courses || []; } catch (e) { courses = []; }
+  try { const d = await api('/api/scores/get'); scores = d.scores || {}; } catch (e) { scores = {}; }
+  try { const d = await api('/api/learning/get'); learning = d.learning || {}; } catch (e) { learning = {}; }
+
+  gamesList = [
+    { id:'tictac', name:'井字棋', icon:'❌' },
+    { id:'memory', name:'记忆翻牌', icon:'🃏' },
+    { id:'snake', name:'贪吃蛇', icon:'🐍' },
+    { id:'game2048', name:'2048', icon:'🔢' },
+    { id:'tetris', name:'俄罗斯方块', icon:'🧱' },
+    { id:'minesweeper', name:'扫雷', icon:'💣' },
+    { id:'breakout', name:'打砖块', icon:'🏓' },
+    { id:'puzzle', name:'拼图', icon:'🧩' },
+    { id:'sudoku', name:'数独', icon:'🧮' },
+    { id:'match3', name:'消消乐', icon:'💎' },
+    { id:'typing', name:'打字游戏', icon:'⌨️' },
+    { id:'jump', name:'跳一跳', icon:'🦘' },
+    { id:'racing', name:'赛车', icon:'🏎️' },
+    { id:'link', name:'连连看', icon:'🔗' },
+    { id:'rps', name:'石头剪刀布', icon:'✊' },
+    { id:'guess', name:'猜数字', icon:'🔢' },
+    { id:'eggy', name:'蛋仔派对', icon:'🥚' }
+  ];
+}
+
+// =====================================================
+// 显示主界面
+// =====================================================
+function showMain() {
+  $('loadingPage').style.display = 'none';
+  $('loginPage').style.display = 'none';
+  $('mainApp').style.display = 'block';
+
+  $('userPhoneDisplay').textContent = '📱 ' + currentUser.phone;
+  const roleMap = { admin: '主控制', sub: '副控制', guest: '游客' };
+  $('userRoleBadge').textContent = roleMap[currentUser.role] || '游客';
+  $('userRoleBadge').className = 'role-badge ' + currentUser.role;
+  $('adminNav').style.display = currentUser.role === 'admin' ? 'inline-block' : 'none';
+
+  renderGameGrid();
+  renderLearning();
+  initAI();
+}
+
+// =====================================================
+// 分数 / 学习进度
+// =====================================================
+async function saveGameScore(phone, gameId, score) {
+  const prev = scores[gameId] || 0;
+  if (score <= prev) return;
+  scores[gameId] = score;
+  try {
+    await api('/api/scores/save', {
+      method: 'POST',
+      body: JSON.stringify({ gameId, score })
+    });
+  } catch (e) { console.warn('分数保存失败', e); }
+}
+
+function getGameScore(phone, gameId) { return scores[gameId] || 0; }
+
+async function saveLearningProgress(phone, courseId, progress) {
+  progress = Math.min(progress, 100);
+  learning[courseId] = progress;
+  try {
+    await api('/api/learning/save', {
+      method: 'POST',
+      body: JSON.stringify({ courseId, progress })
+    });
+  } catch (e) { console.warn('学习进度保存失败', e); }
+}
+
+function getLearningProgress(phone, courseId) { return learning[courseId] || 0; }
+
+// =====================================================
+// 游戏网格
+// =====================================================
+function renderGameGrid() {
+  const grid = $('gameGrid');
+  grid.innerHTML = '';
+  gamesList.forEach(g => {
+    const score = scores[g.id] || 0;
+    const card = document.createElement('div');
+    card.className = 'game-card';
+    card.innerHTML = `
+      <div class="icon">${g.icon}</div>
+      <div class="name">${g.name}</div>
+      <div class="score">🏆 ${score}</div>
+    `;
+    card.onclick = () => openGame(g.id);
+    grid.appendChild(card);
+  });
+}
+
+function openGame(gameId) {
+  currentGameId = gameId;
+  const game = gamesList.find(g => g.id === gameId);
+  if (!game) return;
+  $('gameIcon').textContent = game.icon;
+  $('gameName').textContent = game.name;
+  $('gamePlayContainer').style.display = 'block';
+  $('gameArea').innerHTML = '';
+  if (gameCleanup) { gameCleanup(); gameCleanup = null; }
+  if (gameRenderers[gameId]) {
+    gameRenderers[gameId]($('gameArea'), currentUser.phone);
+  } else {
+    $('gameArea').innerHTML = '<p style="color:rgba(255,255,255,0.5);">游戏加载失败</p>';
+  }
+  $('gamePlayContainer').scrollIntoView({ behavior: 'smooth' });
+}
+
+$('closeGameBtn').onclick = function() {
+  $('gamePlayContainer').style.display = 'none';
+  if (gameCleanup) { gameCleanup(); gameCleanup = null; }
+};
+
+$('restartGameBtn').onclick = function() {
+  if (currentGameId) openGame(currentGameId);
+};
+
+// =====================================================
+// 学习中心
+// =====================================================
+function renderLearning() {
+  const list = $('learningList');
+  list.innerHTML = '';
+  if (courses.length === 0) {
+    list.innerHTML = '<p style="color:rgba(255,255,255,0.4);">暂无课程</p>';
+    return;
+  }
+  courses.forEach(c => {
+    const progress = getLearningProgress(currentUser.phone, c.id);
+    const item = document.createElement('div');
+    item.className = 'learning-item';
+    item.innerHTML = `
+      <span class="title">${c.title} <span style="font-size:12px;color:rgba(255,255,255,0.3);">(${c.level})</span></span>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font-size:13px;color:rgba(255,255,255,0.5);">${Math.round(progress)}%</span>
+        <div class="progress-bar"><div class="fill" style="width:${progress}%;"></div></div>
+        <button class="btn btn-sm btn-primary learn-btn" data-course="${c.id}">📖 学习</button>
+      </div>
+    `;
+    list.appendChild(item);
+  });
+  list.querySelectorAll('.learn-btn').forEach(btn => {
+    btn.onclick = function() { openLearningModal(this.dataset.course); };
+  });
+}
+
+function openLearningModal(courseId) {
+  const course = courses.find(c => c.id === courseId);
+  if (!course) return;
+  currentLearningCourseId = courseId;
+  $('learningModalTitle').textContent = `📖 ${course.title}`;
+  const content = $('learningContent');
+  content.innerHTML = '';
+  let quizIndex = 0;
+  (course.sections || []).forEach(section => {
+    const div = document.createElement('div');
+    div.className = 'content-section';
+    if (section.type === 'text') {
+      div.innerHTML = `<pre style="white-space:pre-wrap;font-family:inherit;font-size:15px;line-height:1.6;">${section.content}</pre>`;
+    } else if (section.type === 'quiz') {
+      const qIdx = quizIndex++;
+      div.innerHTML = `
+        <div class="question">${section.question}</div>
+        <div class="options">
+          ${section.options.map((opt, oi) => `
+            <label><input type="radio" name="quiz_${qIdx}" value="${oi}"> ${opt}</label>
+          `).join('')}
+        </div>
+        <div id="quizResult_${qIdx}" style="font-size:13px;margin-top:4px;min-height:18px;"></div>
+        <button class="btn btn-sm btn-success check-answer" data-qidx="${qIdx}" style="margin-top:6px;">检查答案</button>
+      `;
+      content.appendChild(div);
+      const btn = div.querySelector('.check-answer');
+      btn.onclick = function() {
+        const qIdx = parseInt(this.dataset.qidx);
+        const sel = div.querySelector(`input[name="quiz_${qIdx}"]:checked`);
+        const resultEl = document.getElementById(`quizResult_${qIdx}`);
+        if (!sel) { resultEl.textContent = '请先选择'; resultEl.className = 'result wrong'; return; }
+        const val = parseInt(sel.value);
+        if (val === section.correct) {
+          resultEl.textContent = '✅ 回答正确！' + (section.explanation ? ' ' + section.explanation : '');
+          resultEl.className = 'result correct';
+        } else {
+          resultEl.textContent = '❌ 错误，正确答案是：' + section.options[section.correct];
+          resultEl.className = 'result wrong';
+        }
+      };
+      return;
+    }
+    content.appendChild(div);
+  });
+  $('learningModal').classList.add('show');
+}
+
+$('closeLearningModal').onclick = function() {
+  $('learningModal').classList.remove('show');
+  currentLearningCourseId = null;
+};
+$('closeLearningModalBtn').onclick = $('closeLearningModal').onclick;
+
+$('finishLearningBtn').onclick = function() {
+  if (!currentLearningCourseId) return;
+  const cur = getLearningProgress(currentUser.phone, currentLearningCourseId);
+  const add = 10 + Math.floor(Math.random() * 11);
+  const np = Math.min(cur + add, 100);
+  saveLearningProgress(currentUser.phone, currentLearningCourseId, np);
+  renderLearning();
+  alert(`✅ 进度更新：${Math.round(np)}%`);
+  $('closeLearningModal').onclick();
+};
+
+// =====================================================
+// 课程管理
+// =====================================================
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.onclick = function() {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+    const tab = this.dataset.tab;
+    if (tab === 'courses') { $('panelCourses').classList.add('active'); renderCourseList(); }
+    else if (tab === 'ai') { $('panelAI').classList.add('active'); loadAdminAIConfig(); }
+  };
+});
+
+function renderCourseList() {
+  const container = $('courseListContainer');
+  if (courses.length === 0) {
+    container.innerHTML = '<p style="color:rgba(255,255,255,0.4);">暂无课程</p>';
+    return;
+  }
+  container.innerHTML = courses.map(c => `
+    <div class="course-card">
+      <div class="info">
+        <span class="title">${c.title}</span>
+        <span class="level">${c.level}</span>
+        <span class="section-count">${c.sections ? c.sections.length : 0} 章节</span>
+      </div>
+      <div>
+        <button class="btn btn-sm btn-warning edit-course" data-id="${c.id}">✏️</button>
+        <button class="btn btn-sm btn-danger delete-course" data-id="${c.id}">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('.edit-course').forEach(btn => {
+    btn.onclick = () => openCourseEditor(btn.dataset.id);
+  });
+  container.querySelectorAll('.delete-course').forEach(btn => {
+    btn.onclick = async function() {
+      if (!confirm('删除该课程？')) return;
+      courses = courses.filter(c => c.id !== this.dataset.id);
+      try {
+        await api('/api/courses/save', { method: 'POST', body: JSON.stringify({ courses }) });
+        renderCourseList();
+        renderLearning();
+      } catch (e) { alert(e.message); }
+    };
+  });
+}
+
+function openCourseEditor(courseId) {
+  const c = courseId ? courses.find(x => x.id === courseId) : null;
+  $('courseEditorTitle').textContent = c ? '✏️ 编辑课程' : '📚 添加课程';
+  $('courseIdInput').value = c ? c.id : '';
+  $('courseIdInput').readOnly = !!c;
+  $('courseTitleInput').value = c ? c.title : '';
+  $('courseLevelInput').value = c ? c.level : '';
+  $('sectionsContainer').innerHTML = '';
+  if (c && c.sections) c.sections.forEach(s => addSectionRow(s));
+  else addSectionRow(null);
+  $('courseEditorModal').classList.add('show');
+}
+
+function addSectionRow(sec) {
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'background:rgba(255,255,255,0.04);padding:12px;border-radius:12px;margin-bottom:10px;';
+  sec = sec || { type:'text', content:'' };
+  wrapper.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:6px;">
+      <select class="section-type" style="width:auto;padding:4px 12px;border-radius:20px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);color:#fff;">
+        <option value="text" ${sec.type==='text'?'selected':''}>文本</option>
+        <option value="quiz" ${sec.type==='quiz'?'selected':''}>选择题</option>
+      </select>
+      <button class="btn btn-sm btn-danger remove-section" style="margin-left:auto;">✕</button>
+    </div>
+    <div class="section-fields"></div>
+  `;
+  const fields = wrapper.querySelector('.section-fields');
+  const renderFields = (type) => {
+    if (type === 'text') {
+      fields.innerHTML = `<div class="form-group"><label>内容</label><textarea class="text-content" rows="3">${sec.content||''}</textarea></div>`;
+    } else {
+      fields.innerHTML = `
+        <div class="form-group"><label>问题</label><input class="quiz-question" value="${sec.question||''}"></div>
+        <div class="form-group"><label>选项(每行一个)</label><textarea class="quiz-options" rows="2">${(sec.options||['','']).join('\n')}</textarea></div>
+        <div class="form-group"><label>正确答案索引(0开始)</label><input class="quiz-correct" type="number" value="${sec.correct||0}"></div>
+        <div class="form-group"><label>解析</label><input class="quiz-explanation" value="${sec.explanation||''}"></div>
+      `;
+    }
+  };
+  renderFields(sec.type);
+  wrapper.querySelector('.section-type').onchange = function() { renderFields(this.value); };
+  wrapper.querySelector('.remove-section').onclick = () => wrapper.remove();
+  $('sectionsContainer').appendChild(wrapper);
+}
+
+$('addSectionBtn').onclick = () => addSectionRow(null);
+$('cancelCourseEditorBtn').onclick = () => $('courseEditorModal').classList.remove('show');
+$('closeCourseEditor').onclick = $('cancelCourseEditorBtn').onclick;
+$('addCourseBtn').onclick = () => openCourseEditor(null);
+
+$('saveCourseBtn').onclick = async function() {
+  const id = $('courseIdInput').value.trim();
+  const title = $('courseTitleInput').value.trim();
+  const level = $('courseLevelInput').value.trim();
+  if (!id || !title || !level) { alert('请填写完整'); return; }
+  const rows = $('sectionsContainer').querySelectorAll('div[style*="background"]');
+  const sections = [];
+  rows.forEach(row => {
+    const type = row.querySelector('.section-type').value;
+    if (type === 'text') {
+      const content = row.querySelector('.text-content').value.trim();
+      if (content) sections.push({ type:'text', content });
+    } else {
+      const q = row.querySelector('.quiz-question').value.trim();
+      const opts = row.querySelector('.quiz-options').value.split('\n').map(s=>s.trim()).filter(s=>s);
+      const correct = parseInt(row.querySelector('.quiz-correct').value) || 0;
+      const explanation = row.querySelector('.quiz-explanation').value.trim();
+      if (q && opts.length >= 2) sections.push({ type:'quiz', question:q, options:opts, correct, explanation });
+    }
+  });
+  if (sections.length === 0) { alert('至少一个有效章节'); return; }
+  const newCourse = { id, title, level, sections };
+  const idx = courses.findIndex(c => c.id === id);
+  if (idx >= 0) courses[idx] = newCourse;
+  else courses.push(newCourse);
+  try {
+    await api('/api/courses/save', { method: 'POST', body: JSON.stringify({ courses }) });
+    $('courseEditorModal').classList.remove('show');
+    renderCourseList();
+    renderLearning();
+    alert('✅ 保存成功');
+  } catch (e) { alert(e.message); }
+};
+
+// =====================================================
+// AI 配置
+// =====================================================
+async function loadAdminAIConfig() {
+  try {
+    const data = await api('/api/ai/config/get');
+    if (data.config) {
+      $('adminAiUrl').value = data.config.apiUrl || '';
+      $('adminAiKey').value = '';
+      $('adminAiModel').value = data.config.model || '';
+    }
+  } catch (e) {}
+}
+
+$('adminAiSaveBtn').onclick = async function() {
+  const body = {
+    apiUrl: $('adminAiUrl').value.trim(),
+    model: $('adminAiModel').value.trim()
+  };
+  const key = $('adminAiKey').value.trim();
+  if (key) body.apiKey = key;
+  try {
+    await api('/api/ai/config/save', { method: 'POST', body: JSON.stringify(body) });
+    $('adminAiMsg').textContent = '✅ 保存成功';
+    $('adminAiMsg').style.color = '#4ecdc4';
+  } catch (e) {
+    $('adminAiMsg').textContent = e.message;
+    $('adminAiMsg').style.color = '#ff6b6b';
+  }
+};
+
+// =====================================================
+// AI 助手
+// =====================================================
+function initAI() {
+  $('aiSendBtn').onclick = handleAskAI;
+  $('aiInput').onkeydown = e => { if (e.key === 'Enter') handleAskAI(); };
+  $('aiClearChatBtn').onclick = function() {
+    aiMessages = [];
+    $('aiMessages').innerHTML = '<div class="ai-message assistant"><div class="avatar">🤖</div><div class="bubble">🧹 对话已清空</div></div>';
+  };
+  $('aiSettingsBtn').onclick = function() { $('aiSettingsModal').classList.add('show'); };
+  $('aiCloseSettingsBtn').onclick = () => $('aiSettingsModal').classList.remove('show');
+  $('aiCancelSettingsBtn').onclick = $('aiCloseSettingsBtn').onclick;
+  $('aiSaveSettingsBtn').onclick = async function() {
+    const body = {
+      apiUrl: $('aiApiUrlInput').value.trim(),
+      model: $('aiModelSelect').value
+    };
+    const key = $('aiApiKeyInput').value.trim();
+    if (key) body.apiKey = key;
+    try {
+      await api('/api/ai/config/save', { method: 'POST', body: JSON.stringify(body) });
+      $('aiSettingsStatus').textContent = '✅ 保存成功';
+      $('aiSettingsStatus').style.color = '#4ecdc4';
+      setTimeout(() => $('aiSettingsModal').classList.remove('show'), 800);
+    } catch (e) {
+      $('aiSettingsStatus').textContent = e.message;
+      $('aiSettingsStatus').style.color = '#ff6b6b';
+    }
+  };
+  document.querySelectorAll('.quick-btn').forEach(btn => {
+    btn.onclick = function() {
+      if (aiIsLoading) return;
+      $('aiInput').value = this.dataset.q;
+      handleAskAI();
+    };
+  });
+  updateAIStatus('online');
+}
+
+async function handleAskAI() {
+  if (aiIsLoading) return;
+  const q = $('aiInput').value.trim();
+  if (!q) return;
+  appendChat('user', q);
+  $('aiInput').value = '';
+  aiIsLoading = true;
+  $('aiSendBtn').disabled = true;
+  const placeholder = appendChat('assistant', '思考中...');
+  placeholder.style.opacity = '0.6';
+
+  try {
+    const history = aiMessages.slice(-10).map(m => ({ role: m.role, content: m.content }));
+    const resp = await api('/api/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: '你是一个专业友好的学习助手，用通俗易懂的语言回答，适当使用 emoji。' },
+          ...history,
+          { role: 'user', content: q }
+        ]
+      })
+    });
+    placeholder.style.opacity = '1';
+    placeholder.querySelector('.bubble').textContent = resp.content || '（空）';
+    aiMessages.push({ role: 'user', content: q });
+    aiMessages.push({ role: 'assistant', content: resp.content || '' });
+    updateAIStatus('online');
+  } catch (e) {
+    placeholder.style.opacity = '1';
+    placeholder.querySelector('.bubble').textContent = '❌ ' + e.message;
+    updateAIStatus('offline');
+  } finally {
+    aiIsLoading = false;
+    $('aiSendBtn').disabled = false;
+  }
+}
+
+function appendChat(role, text) {
+  const container = $('aiMessages');
+  if (container.querySelector('.ai-welcome')) container.innerHTML = '';
+  const div = document.createElement('div');
+  div.className = 'ai-message ' + role;
+  const avatar = role === 'user' ? '👤' : '🤖';
+  div.innerHTML = `<div class="avatar">${avatar}</div><div class="bubble">${text}</div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function updateAIStatus(status) {
+  const dot = $('aiStatusDot');
+  const txt = $('aiStatusText');
+  if (!dot) return;
+  dot.className = 'dot ' + status;
+  txt.textContent = status === 'online' ? '已连接' : '未连接';
+}
+
+// =====================================================
+// 页面切换
+// =====================================================
+document.querySelectorAll('.nav-item[data-page]').forEach(el => {
+  el.onclick = function() {
+    document.querySelectorAll('.nav-item[data-page]').forEach(e => e.classList.remove('active'));
+    this.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const page = this.dataset.page;
+    if (page === 'games') $('pageGames').classList.add('active');
+    else if (page === 'learning') { $('pageLearning').classList.add('active'); renderLearning(); }
+    else if (page === 'admin') { $('pageAdmin').classList.add('active'); }
+    else if (page === 'ai') { $('pageAI').classList.add('active'); }
+    $('gamePlayContainer').style.display = 'none';
+    if (gameCleanup) { gameCleanup(); gameCleanup = null; }
+  };
+});
+
+$('backHomeBtn').onclick = () => window.location.href = '/';
+$('logoutBtn').onclick = () => {
+  if (!confirm('退出？')) return;
+  localStorage.removeItem('game_token');
+  location.reload();
+};
+
+$('loginBtn').onclick = async function() {
+  const phone = $('loginPhone').value.trim();
+  const password = $('loginPassword').value.trim();
+  if (!phone || !password) { $('loginError').textContent = '请输入账号密码'; return; }
+  try {
+    const resp = await fetch(API + '/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, password })
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || '登录失败');
+    token = data.token;
+    localStorage.setItem('game_token', token);
+    currentUser = data.user;
+    await initData();
+    showMain();
+  } catch (e) { $('loginError').textContent = e.message; }
+};
+
+// =====================================================
+// 游戏渲染函数（下一段输出）
+// =====================================================
+const gameRenderers = {};
+
+// ---- 1. 井字棋 ----
+gameRenderers['tictac'] = function(container, phone) {
+  let board = Array(9).fill(null), turn = 'X', over = false;
+  const status = document.createElement('div');
+  status.className = 'score-display';
+  status.textContent = '当前: X';
+  const el = document.createElement('div');
+  el.className = 'tic-tac-toe-board';
+  container.appendChild(status); container.appendChild(el);
+  const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  const check = () => {
+    for (const L of lines) {
+      if (board[L[0]] && board[L[0]] === board[L[1]] && board[L[0]] === board[L[2]]) return L;
+    }
+    return board.every(v => v) ? 'draw' : null;
+  };
+  const render = () => {
+    el.innerHTML = '';
+    const w = over ? [] : [];
+    board.forEach((v, i) => {
+      const c = document.createElement('div');
+      c.className = 'cell' + (v === 'X' ? ' x' : v === 'O' ? ' o' : '');
+      c.textContent = v || '';
+      c.onclick = () => {
+        if (over || board[i]) return;
+        board[i] = turn;
+        const r = check();
+        if (r) {
+          over = true;
+          if (r === 'draw') { status.textContent = '🤝 平局！'; saveGameScore(phone, 'tictac', 5); }
+          else { status.textContent = `🎉 ${turn} 获胜！`; saveGameScore(phone, 'tictac', 10);
+            r.forEach(j => el.children[j].classList.add('win')); }
+          return;
+        }
+        turn = turn === 'X' ? 'O' : 'X';
+        status.textContent = `当前: ${turn}`;
+        render();
+      };
+      el.appendChild(c);
+    });
+  };
+  render();
+};
+
+// ---- 2. 记忆翻牌 ----
+gameRenderers['memory'] = function(container, phone) {
+  const emojis = ['🍎','🍌','🍒','🍇','🍉','🍓','🍑','🥝'];
+  let cards = [...emojis, ...emojis], flipped = [], matched = [], lock = false, moves = 0;
+  const status = document.createElement('div');
+  status.className = 'score-display';
+  status.innerHTML = `步数: <span>0</span> | 配对: <span>0</span>/8`;
+  const board = document.createElement('div');
+  board.className = 'memory-board';
+  container.appendChild(status); container.appendChild(board);
+  for (let i = cards.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cards[i], cards[j]] = [cards[j], cards[i]];
+  }
+  const render = () => {
+    board.innerHTML = '';
+    cards.forEach((emoji, i) => {
+      const c = document.createElement('div');
+      c.className = 'memory-card';
+      if (matched.includes(i)) { c.classList.add('matched'); c.textContent = emoji; }
+      else if (flipped.includes(i)) { c.classList.add('flipped'); c.textContent = emoji; }
+      else c.textContent = '❓';
+      c.onclick = () => {
+        if (lock || flipped.includes(i) || matched.includes(i) || flipped.length >= 2) return;
+        flipped.push(i);
+        render();
+        if (flipped.length === 2) {
+          lock = true; moves++;
+          const [a, b] = flipped;
+          if (cards[a] === cards[b]) {
+            matched.push(a, b);
+            flipped = []; lock = false;
+            status.innerHTML = `步数: <span>${moves}</span> | 配对: <span>${matched.length/2}</span>/8`;
+            render();
+            if (matched.length === cards.length) {
+              status.innerHTML = `🎉 完成！步数: <span>${moves}</span>`;
+              saveGameScore(phone, 'memory', Math.max(0, 40 - moves) * 5);
+            }
+          } else {
+            setTimeout(() => { flipped = []; lock = false; render(); }, 600);
+          }
+        }
+      };
+      board.appendChild(c);
+    });
+  };
+  render();
+};
+
+// ---- 3. 贪吃蛇 ----
+gameRenderers['snake'] = function(container, phone) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 400; canvas.height = 400;
+  canvas.className = 'game-canvas';
+  container.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  const G = 20, N = 20;
+  let snake = [{x:10,y:10}], food = {x:15,y:10}, dx = 1, dy = 0, score = 3, running = true, timer = null;
+  const draw = () => {
+    ctx.fillStyle = '#0d1120'; ctx.fillRect(0,0,400,400);
+    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+    for (let i = 0; i <= N; i++) { ctx.beginPath(); ctx.moveTo(i*G,0); ctx.lineTo(i*G,400); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0,i*G); ctx.lineTo(400,i*G); ctx.stroke(); }
+    ctx.fillStyle = '#f5576c';
+    ctx.beginPath(); ctx.arc(food.x*G+10, food.y*G+10, 8, 0, Math.PI*2); ctx.fill();
+    snake.forEach((s,i) => { ctx.fillStyle = i === 0 ? '#4ecdc4' : `rgba(78,205,196,${1-i/snake.length*0.5})`; ctx.fillRect(s.x*G+1, s.y*G+1, G-2, G-2); });
+  };
+  const genFood = () => { let p; do { p = {x:Math.floor(Math.random()*N), y:Math.floor(Math.random()*N)}; } while (snake.some(s => s.x===p.x && s.y===p.y)); food = p; };
+  const step = () => {
+    if (!running) return;
+    const head = {x: snake[0].x + dx, y: snake[0].y + dy};
+    if (head.x < 0 || head.x >= N || head.y < 0 || head.y >= N || snake.some(s => s.x===head.x && s.y===head.y)) {
+      running = false; clearInterval(timer);
+      saveGameScore(phone, 'snake', score);
+      setTimeout(() => alert('💀 游戏结束！长度: ' + score), 100);
+      return;
+    }
+    snake.unshift(head);
+    if (head.x === food.x && head.y === food.y) { score++; genFood(); }
+    else snake.pop();
+    draw();
+  };
+  const key = e => {
+    if (e.key === 'ArrowUp' && dy !== 1) { dx = 0; dy = -1; e.preventDefault(); }
+    if (e.key === 'ArrowDown' && dy !== -1) { dx = 0; dy = 1; e.preventDefault(); }
+    if (e.key === 'ArrowLeft' && dx !== 1) { dx = -1; dy = 0; e.preventDefault(); }
+    if (e.key === 'ArrowRight' && dx !== -1) { dx = 1; dy = 0; e.preventDefault(); }
+  };
+  document.addEventListener('keydown', key);
+  genFood(); draw();
+  timer = setInterval(step, 150);
+  gameCleanup = () => { document.removeEventListener('keydown', key); clearInterval(timer); };
+};
+
+// ---- 4. 2048 ----
+gameRenderers['game2048'] = function(container, phone) {
+  let grid = Array.from({length:4}, () => Array(4).fill(0));
+  let score = 0, over = false;
+  const status = document.createElement('div');
+  status.className = 'score-display';
+  status.innerHTML = '🏆 分数: <span>0</span>';
+  const board = document.createElement('div');
+  board.className = 'game2048-board';
+  container.appendChild(status); container.appendChild(board);
+  const render = () => {
+    board.innerHTML = '';
+    grid.forEach(row => row.forEach(v => {
+      const t = document.createElement('div');
+      t.className = 'tile-2048';
+      t.dataset.value = v || '';
+      t.textContent = v || '';
+      board.appendChild(t);
+    }));
+    status.innerHTML = `🏆 分数: <span>${score}</span>`;
+  };
+  const add = () => {
+    const empty = [];
+    grid.forEach((row, i) => row.forEach((v, j) => { if (!v) empty.push([i,j]); }));
+    if (!empty.length) return false;
+    const [i,j] = empty[Math.floor(Math.random()*empty.length)];
+    grid[i][j] = Math.random() < 0.9 ? 2 : 4;
+    return true;
+  };
+  const slide = row => {
+    let arr = row.filter(v => v), res = [];
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i] === arr[i+1]) { res.push(arr[i]*2); score += arr[i]*2; i++; }
+      else res.push(arr[i]);
+    }
+    while (res.length < 4) res.push(0);
+    return res;
+  };
+  const move = dir => {
+    if (over) return;
+    let moved = false;
+    const old = JSON.stringify(grid);
+    if (dir === 'L') grid = grid.map(r => slide(r));
+    if (dir === 'R') grid = grid.map(r => slide(r.slice().reverse()).reverse());
+    if (dir === 'U') {
+      for (let c = 0; c < 4; c++) {
+        const col = grid.map(r => r[c]);
+        const res = slide(col);
+        for (let r = 0; r < 4; r++) grid[r][c] = res[r];
+      }
+    }
+    if (dir === 'D') {
+      for (let c = 0; c < 4; c++) {
+        const col = grid.map(r => r[c]).reverse();
+        const res = slide(col).reverse();
+        for (let r = 0; r < 4; r++) grid[r][c] = res[r];
+      }
+    }
+    if (JSON.stringify(grid) !== old) moved = true;
+    if (moved) { if (!add()) { over = true; saveGameScore(phone, 'game2048', score); } render(); }
+  };
+  const key = e => {
+    const map = {ArrowLeft:'L', ArrowRight:'R', ArrowUp:'U', ArrowDown:'D'};
+    if (map[e.key]) { e.preventDefault(); move(map[e.key]); }
+  };
+  document.addEventListener('keydown', key);
+  add(); add(); render();
+  gameCleanup = () => document.removeEventListener('keydown', key);
+};
+
+// ---- 5. 俄罗斯方块 ----
+gameRenderers['tetris'] = function(container, phone) {
+  const COLS = 10, ROWS = 20, B = 20;
+  const canvas = document.createElement('canvas');
+  canvas.width = COLS * B; canvas.height = ROWS * B;
+  canvas.className = 'game-canvas';
+  container.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  const SHAPES = [
+    [[1,1,1,1]],
+    [[1,1],[1,1]],
+    [[0,1,0],[1,1,1]],
+    [[1,0,0],[1,1,1]],
+    [[0,0,1],[1,1,1]],
+    [[1,1,0],[0,1,1]],
+    [[0,1,1],[1,1,0]]
+  ];
+  const COLORS = ['#4facfe','#ff6b6b','#f093fb','#ffd700','#4ecdc4','#ff9f43','#a29bfe'];
+  let board = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+  let piece = null, score = 0, timer = null, over = false;
+  const spawn = () => {
+    const i = Math.floor(Math.random() * SHAPES.length);
+    piece = { shape: SHAPES[i].map(r => [...r]), color: COLORS[i], x: Math.floor((COLS - SHAPES[i][0].length)/2), y: 0 };
+    if (!valid(piece.shape, piece.x, piece.y)) { over = true; clearInterval(timer); saveGameScore(phone, 'tetris', score); setTimeout(() => alert('💀 游戏结束！分数: ' + score), 100); }
+  };
+  const valid = (shape, ox, oy) => {
+    for (let r = 0; r < shape.length; r++)
+      for (let c = 0; c < shape[r].length; c++)
+        if (shape[r][c]) {
+          const x = ox + c, y = oy + r;
+          if (x < 0 || x >= COLS || y >= ROWS) return false;
+          if (y >= 0 && board[y][x]) return false;
+        }
+    return true;
+  };
+  const lock = () => {
+    for (let r = 0; r < piece.shape.length; r++)
+      for (let c = 0; c < piece.shape[r].length; c++)
+        if (piece.shape[r][c]) board[piece.y + r][piece.x + c] = piece.color;
+    let cleared = 0;
+    for (let r = ROWS - 1; r >= 0; r--) {
+      if (board[r].every(v => v)) { board.splice(r,1); board.unshift(Array(COLS).fill(0)); cleared++; r++; }
+    }
+    if (cleared) { score += [0,100,300,500,800][cleared] || 800; saveGameScore(phone, 'tetris', score); }
+    spawn();
+  };
+  const draw = () => {
+    ctx.fillStyle = '#0d1120'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    board.forEach((row, r) => row.forEach((v, c) => {
+      if (v) { ctx.fillStyle = v; ctx.fillRect(c*B, r*B, B-1, B-1); }
+      else { ctx.strokeStyle = 'rgba(255,255,255,0.03)'; ctx.strokeRect(c*B, r*B, B, B); }
+    }));
+    if (piece && !over) {
+      piece.shape.forEach((row, r) => row.forEach((v, c) => {
+        if (v) { ctx.fillStyle = piece.color; ctx.fillRect((piece.x+c)*B, (piece.y+r)*B, B-1, B-1); }
+      }));
+    }
+  };
+  const key = e => {
+    if (!piece || over) return;
+    if (e.key === 'ArrowLeft' && valid(piece.shape, piece.x-1, piece.y)) { piece.x--; e.preventDefault(); }
+    else if (e.key === 'ArrowRight' && valid(piece.shape, piece.x+1, piece.y)) { piece.x++; e.preventDefault(); }
+    else if (e.key === 'ArrowDown' && valid(piece.shape, piece.x, piece.y+1)) { piece.y++; e.preventDefault(); }
+    else if (e.key === 'ArrowUp') {
+      const rot = piece.shape[0].map((_,i) => piece.shape.map(r => r[i]).reverse());
+      if (valid(rot, piece.x, piece.y)) piece.shape = rot;
+      e.preventDefault();
+    }
+    draw();
+  };
+  document.addEventListener('keydown', key);
+  spawn();
+  timer = setInterval(() => {
+    if (over || !piece) return;
+    if (valid(piece.shape, piece.x, piece.y+1)) piece.y++;
+    else lock();
+    draw();
+  }, 500);
+  draw();
+  gameCleanup = () => { document.removeEventListener('keydown', key); clearInterval(timer); };
+};
+
+// ---- 6. 扫雷 ----
+gameRenderers['minesweeper'] = function(container, phone) {
+  const N = 9, MINES = 10;
+  let board = [], revealed = [], flagged = [], over = false;
+  const status = document.createElement('div');
+  status.className = 'score-display';
+  status.textContent = '💣 扫雷';
+  const grid = document.createElement('div');
+  grid.className = 'minesweeper-board';
+  grid.style.gridTemplateColumns = `repeat(${N}, 40px)`;
+  container.appendChild(status); container.appendChild(grid);
+  const init = () => {
+    board = Array.from({length: N}, () => Array(N).fill(0));
+    revealed = Array.from({length: N}, () => Array(N).fill(false));
+    flagged = Array.from({length: N}, () => Array(N).fill(false));
+    let p = 0;
+    while (p < MINES) {
+      const r = Math.floor(Math.random()*N), c = Math.floor(Math.random()*N);
+      if (board[r][c] !== -1) { board[r][c] = -1; p++; }
+    }
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      if (board[r][c] === -1) continue;
+      let cnt = 0;
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        const nr = r+dr, nc = c+dc;
+        if (nr>=0&&nr<N&&nc>=0&&nc<N&&board[nr][nc]===-1) cnt++;
+      }
+      board[r][c] = cnt;
+    }
+    over = false;
+    render();
+  };
+  const render = () => {
+    grid.innerHTML = '';
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'mine-cell';
+      if (revealed[r][c]) {
+        cell.classList.add('revealed');
+        if (board[r][c] === -1) { cell.textContent = '💣'; cell.classList.add('mine-exploded'); }
+        else cell.textContent = board[r][c] || '';
+      } else if (flagged[r][c]) { cell.classList.add('flagged'); cell.textContent = '🚩'; }
+      cell.onclick = () => reveal(r, c);
+      cell.oncontextmenu = e => { e.preventDefault(); if (!revealed[r][c] && !over) { flagged[r][c] = !flagged[r][c]; render(); } };
+      grid.appendChild(cell);
+    }
+  };
+  const reveal = (r, c) => {
+    if (over || revealed[r][c] || flagged[r][c]) return;
+    if (board[r][c] === -1) {
+      over = true;
+      for (let rr = 0; rr < N; rr++) for (let cc = 0; cc < N; cc++) if (board[rr][cc] === -1) revealed[rr][cc] = true;
+      render();
+      saveGameScore(phone, 'minesweeper', 0);
+      setTimeout(() => alert('💥 踩雷了！'), 100);
+      return;
+    }
+    revealed[r][c] = true;
+    if (board[r][c] === 0) {
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        const nr = r+dr, nc = c+dc;
+        if (nr>=0&&nr<N&&nc>=0&&nc<N&&!revealed[nr][nc]) reveal(nr, nc);
+      }
+    }
+    render();
+    let safe = 0;
+    for (let rr = 0; rr < N; rr++) for (let cc = 0; cc < N; cc++) if (board[rr][cc] !== -1 && !revealed[rr][cc]) safe++;
+    if (!safe) { over = true; saveGameScore(phone, 'minesweeper', 100); setTimeout(() => alert('🎉 你赢了！'), 100); }
+  };
+  init();
+};
+
+// ---- 7. 打砖块 ----
+gameRenderers['breakout'] = function(container, phone) {
+  const W = 400, H = 300;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  canvas.className = 'game-canvas';
+  container.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  let ball = {x:W/2, y:H-40, dx:3, dy:-3, r:6};
+  let paddle = {x:W/2-40, y:H-15, w:80, h:8};
+  let bricks = [], score = 0, over = false, raf = null;
+  for (let r = 0; r < 5; r++) for (let c = 0; c < 8; c++) {
+    bricks.push({ x: c*50+5, y: r*20+30, w: 45, h: 15, alive: true });
+  }
+  const draw = () => {
+    ctx.fillStyle = '#0d1120'; ctx.fillRect(0,0,W,H);
+    bricks.forEach(b => { if (b.alive) { ctx.fillStyle = `hsl(${b.y},70%,55%)`; ctx.fillRect(b.x, b.y, b.w, b.h); } });
+    ctx.fillStyle = '#4facfe'; ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
+    ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fillStyle = '#f5576c'; ctx.fill();
+  };
+  const loop = () => {
+    if (over) return;
+    ball.x += ball.dx; ball.y += ball.dy;
+    if (ball.x < ball.r || ball.x > W-ball.r) ball.dx *= -1;
+    if (ball.y < ball.r) ball.dy *= -1;
+    if (ball.y + ball.r > paddle.y && ball.y - ball.r < paddle.y + paddle.h && ball.x > paddle.x && ball.x < paddle.x + paddle.w) {
+      ball.dy *= -1; ball.y = paddle.y - ball.r;
+    }
+    if (ball.y > H) { over = true; saveGameScore(phone, 'breakout', score); alert('游戏结束！分数: ' + score); return; }
+    bricks.forEach(b => {
+      if (b.alive && ball.x > b.x && ball.x < b.x + b.w && ball.y > b.y && ball.y < b.y + b.h) {
+        b.alive = false; score += 10; ball.dy *= -1;
+        saveGameScore(phone, 'breakout', score);
+      }
+    });
+    if (bricks.every(b => !b.alive)) { over = true; saveGameScore(phone, 'breakout', score); alert('🎉 通关！分数: ' + score); return; }
+    draw();
+    raf = requestAnimationFrame(loop);
+  };
+  const mouse = e => {
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (W / rect.width);
+    paddle.x = Math.max(0, Math.min(W - paddle.w, x - paddle.w/2));
+  };
+  canvas.addEventListener('mousemove', mouse);
+  draw(); raf = requestAnimationFrame(loop);
+  gameCleanup = () => { cancelAnimationFrame(raf); canvas.removeEventListener('mousemove', mouse); };
+};
+
+// ---- 8. 拼图 ----
+gameRenderers['puzzle'] = function(container, phone) {
+  const N = 3;
+  let tiles = [], empty = {r:N-1, c:N-1};
+  const board = document.createElement('div');
+  board.className = 'puzzle-board';
+  board.style.gridTemplateColumns = `repeat(${N}, 80px)`;
+  container.appendChild(board);
+  const shuffle = () => {
+    tiles = [];
+    for (let i = 1; i < N*N; i++) tiles.push(i);
+    tiles.push(0);
+    empty = {r:N-1, c:N-1};
+    for (let k = 0; k < 100; k++) {
+      const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+      const d = dirs[Math.floor(Math.random()*4)];
+      const nr = empty.r + d[0], nc = empty.c + d[1];
+      if (nr >= 0 && nr < N && nc >= 0 && nc < N) {
+        [tiles[empty.r*N+empty.c], tiles[nr*N+nc]] = [tiles[nr*N+nc], tiles[empty.r*N+empty.c]];
+        empty = {r:nr, c:nc};
+      }
+    }
+    render();
+  };
+  const render = () => {
+    board.innerHTML = '';
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const v = tiles[r*N+c];
+      const cell = document.createElement('div');
+      cell.className = 'puzzle-piece' + (v === 0 ? ' empty' : '');
+      cell.textContent = v || '';
+      cell.onclick = () => move(r, c);
+      board.appendChild(cell);
+    }
+  };
+  const move = (r, c) => {
+    const dr = Math.abs(r - empty.r), dc = Math.abs(c - empty.c);
+    if ((dr === 1 && dc === 0) || (dr === 0 && dc === 1)) {
+      [tiles[r*N+c], tiles[empty.r*N+empty.c]] = [tiles[empty.r*N+empty.c], tiles[r*N+c]];
+      empty = {r, c};
+      render();
+      let win = true;
+      for (let i = 0; i < N*N-1; i++) if (tiles[i] !== i+1) win = false;
+      if (win && tiles[N*N-1] === 0) { saveGameScore(phone, 'puzzle', 1); setTimeout(() => alert('🎉 拼图完成！'), 100); }
+    }
+  };
+  shuffle();
+};
+
+// ---- 9. 数独 ----
+gameRenderers['sudoku'] = function(container, phone) {
+  const base = [
+    [5,3,0,0,7,0,0,0,0],
+    [6,0,0,1,9,5,0,0,0],
+    [0,9,8,0,0,0,0,6,0],
+    [8,0,0,0,6,0,0,0,3],
+    [4,0,0,8,0,3,0,0,1],
+    [7,0,0,0,2,0,0,0,6],
+    [0,6,0,0,0,0,2,8,0],
+    [0,0,0,4,1,9,0,0,5],
+    [0,0,0,0,8,0,0,7,9]
+  ];
+  let grid = base.map(r => [...r]);
+  const given = base.map(r => r.map(v => v !== 0));
+  const board = document.createElement('div');
+  board.className = 'sudoku-board';
+  container.appendChild(board);
+  const valid = (r, c, n) => {
+    for (let i = 0; i < 9; i++) {
+      if (i !== c && grid[r][i] === n) return false;
+      if (i !== r && grid[i][c] === n) return false;
+    }
+    const br = Math.floor(r/3)*3, bc = Math.floor(c/3)*3;
+    for (let dr = 0; dr < 3; dr++) for (let dc = 0; dc < 3; dc++) {
+      const nr = br+dr, nc = bc+dc;
+      if ((nr !== r || nc !== c) && grid[nr][nc] === n) return false;
+    }
+    return true;
+  };
+  const render = () => {
+    board.innerHTML = '';
+    for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'sudoku-cell' + (given[r][c] ? ' given' : '');
+      cell.textContent = grid[r][c] || '';
+      cell.onclick = () => {
+        if (given[r][c]) return;
+        const v = prompt('输入数字 1-9（0 清空）:', grid[r][c] || '');
+        if (v === null) return;
+        const n = parseInt(v);
+        if (isNaN(n) || n < 0 || n > 9) return;
+        if (n === 0) { grid[r][c] = 0; render(); return; }
+        if (valid(r, c, n)) {
+          grid[r][c] = n;
+          render();
+          if (grid.every(row => row.every(v => v))) { saveGameScore(phone, 'sudoku', 100); setTimeout(() => alert('🎉 数独完成！'), 100); }
+        } else alert('该数字不合法');
+      };
+      board.appendChild(cell);
+    }
+  };
+  render();
+};
+
+// ---- 10. 消消乐 ----
+gameRenderers['match3'] = function(container, phone) {
+  const N = 8, COLORS = ['🍎','🍌','🍒','🍇','🍉'];
+  let grid = Array.from({length:N}, () => Array.from({length:N}, () => COLORS[Math.floor(Math.random()*COLORS.length)]));
+  let selected = null, score = 0;
+  const status = document.createElement('div');
+  status.className = 'score-display';
+  status.innerHTML = '💎 分数: <span>0</span>';
+  const board = document.createElement('div');
+  board.className = 'match3-board';
+  board.style.gridTemplateColumns = `repeat(${N}, 48px)`;
+  container.appendChild(status); container.appendChild(board);
+  const findMatches = () => {
+    const s = new Set();
+    for (let r = 0; r < N; r++) for (let c = 0; c < N-2; c++) {
+      if (grid[r][c] && grid[r][c] === grid[r][c+1] && grid[r][c] === grid[r][c+2]) { s.add(r+','+c); s.add(r+','+(c+1)); s.add(r+','+(c+2)); }
+    }
+    for (let c = 0; c < N; c++) for (let r = 0; r < N-2; r++) {
+      if (grid[r][c] && grid[r][c] === grid[r+1][c] && grid[r][c] === grid[r+2][c]) { s.add(r+','+c); s.add((r+1)+','+c); s.add((r+2)+','+c); }
+    }
+    return s;
+  };
+  const process = () => {
+    const s = findMatches();
+    if (!s.size) return;
+    s.forEach(k => { const [r,c] = k.split(',').map(Number); grid[r][c] = null; });
+    score += s.size * 10;
+    for (let c = 0; c < N; c++) {
+      let write = N-1;
+      for (let r = N-1; r >= 0; r--) if (grid[r][c] !== null) { grid[write][c] = grid[r][c]; if (write !== r) grid[r][c] = null; write--; }
+      for (let r = write; r >= 0; r--) grid[r][c] = COLORS[Math.floor(Math.random()*COLORS.length)];
+    }
+    render();
+    setTimeout(process, 300);
+  };
+  const render = () => {
+    board.innerHTML = '';
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'match3-cell';
+      const colors = {'🍎':'#ff6b6b','🍌':'#ffd93d','🍒':'#e74c6f','🍇':'#a29bfe','🍉':'#4ecdc4'};
+      cell.style.background = grid[r][c] ? (colors[grid[r][c]] || 'rgba(255,255,255,0.06)') : 'transparent';
+      cell.textContent = grid[r][c] || '';
+      if (selected && selected[0] === r && selected[1] === c) cell.classList.add('selected');
+      cell.onclick = () => {
+        if (!selected) { selected = [r,c]; render(); return; }
+        const [sr, sc] = selected;
+        const dr = Math.abs(r-sr), dc = Math.abs(c-sc);
+        if ((dr===1&&dc===0)||(dr===0&&dc===1)) {
+          [grid[sr][sc], grid[r][c]] = [grid[r][c], grid[sr][sc]];
+          selected = null;
+          if (findMatches().size) { saveGameScore(phone, 'match3', score); render(); process(); }
+          else { [grid[sr][sc], grid[r][c]] = [grid[r][c], grid[sr][sc]]; render(); }
+        } else { selected = [r,c]; render(); }
+      };
+      board.appendChild(cell);
+    }
+    status.innerHTML = `💎 分数: <span>${score}</span>`;
+  };
+  render();
+  process();
+};
+
+// ---- 11. 打字游戏 ----
+gameRenderers['typing'] = function(container, phone) {
+  const WORDS = ['apple','book','cat','dog','fish','game','happy','ice','jump','king','love','moon','night','open','pink','queen','rain','sun','tree','view','water','yellow','zoo'];
+  let score = 0, current = '';
+  const status = document.createElement('div');
+  status.className = 'score-display';
+  status.innerHTML = '⌨️ 分数: <span>0</span>';
+  const wordEl = document.createElement('div');
+  wordEl.className = 'typing-word';
+  const input = document.createElement('input');
+  input.className = 'typing-input';
+  input.placeholder = '输入单词';
+  const msg = document.createElement('p');
+  msg.style.marginTop = '10px';
+  msg.style.color = 'rgba(255,255,255,0.6)';
+  container.appendChild(status); container.appendChild(wordEl); container.appendChild(input); container.appendChild(msg);
+  const next = () => { current = WORDS[Math.floor(Math.random()*WORDS.length)]; wordEl.textContent = current; input.value = ''; input.focus(); };
+  const submit = () => {
+    if (input.value.trim().toLowerCase() === current) { score += 10; saveGameScore(phone, 'typing', score); msg.textContent = '✅ 正确 +10'; status.innerHTML = `⌨️ 分数: <span>${score}</span>`; next(); }
+    else msg.textContent = '❌ 错误';
+    input.value = '';
+  };
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+  next();
+};
+
+// ---- 12. 跳一跳 ----
+gameRenderers['jump'] = function(container, phone) {
+  let score = 0;
+  const status = document.createElement('div');
+  status.className = 'score-display';
+  status.innerHTML = '🦘 分数: <span>0</span>';
+  const btn = document.createElement('button');
+  btn.className = 'btn btn-primary';
+  btn.textContent = '🦘 点击跳跃';
+  const msg = document.createElement('p');
+  msg.style.marginTop = '12px';
+  msg.style.color = 'rgba(255,255,255,0.6)';
+  btn.onclick = () => {
+    const p = Math.floor(Math.random()*5) + 1;
+    score += p; saveGameScore(phone, 'jump', score);
+    status.innerHTML = `🦘 分数: <span>${score}</span>`;
+    msg.textContent = `+${p} 分`;
+  };
+  container.appendChild(status); container.appendChild(btn); container.appendChild(msg);
+};
+
+// ---- 13. 赛车 ----
+gameRenderers['racing'] = function(container, phone) {
+  const W = 300, H = 400;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  canvas.className = 'game-canvas';
+  container.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  let carX = W/2 - 20, carY = H - 70, carW = 40, carH = 50;
+  let obstacles = [], score = 0, over = false, raf = null;
+  const draw = () => {
+    ctx.fillStyle = '#222'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = '#666';
+    for (let i = 0; i < H; i += 40) ctx.fillRect(W/2-5, i + (Date.now()/30 % 40), 10, 20);
+    ctx.fillStyle = '#4facfe'; ctx.fillRect(carX, carY, carW, carH);
+    ctx.fillStyle = '#f5576c';
+    obstacles.forEach(o => ctx.fillRect(o.x, o.y, o.w, o.h));
+    ctx.fillStyle = '#fff'; ctx.font = '16px sans-serif'; ctx.fillText('分数: ' + score, 10, 25);
+  };
+  const loop = () => {
+    if (over) return;
+    obstacles.forEach(o => o.y += 3);
+    obstacles = obstacles.filter(o => o.y < H);
+    if (Math.random() < 0.03) obstacles.push({ x: Math.random()*(W-carW), y: -carH, w: carW, h: carH });
+    for (const o of obstacles) {
+      if (o.x < carX+carW && o.x+o.w > carX && o.y < carY+carH && o.y+o.h > carY) {
+        over = true; saveGameScore(phone, 'racing', score); alert('💥 撞车！分数: ' + score); return;
+      }
+    }
+    score++;
+    draw();
+    raf = requestAnimationFrame(loop);
+  };
+  const key = e => {
+    if (e.key === 'ArrowLeft') carX = Math.max(0, carX - 20);
+    if (e.key === 'ArrowRight') carX = Math.min(W-carW, carX + 20);
+  };
+  document.addEventListener('keydown', key);
+  draw();
+  raf = requestAnimationFrame(loop);
+  gameCleanup = () => { document.removeEventListener('keydown', key); cancelAnimationFrame(raf); };
+};
+
+// ---- 14. 连连看 ----
+gameRenderers['link'] = function(container, phone) {
+  const N = 6, EMOJIS = ['🍎','🍌','🍒','🍇','🍉','🍓','🍑','🥝','🍊'];
+  let pool = [];
+  for (let i = 0; i < N*N/2; i++) pool.push(EMOJIS[i % EMOJIS.length], EMOJIS[i % EMOJIS.length]);
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+  let grid = [], selected = null, matched = 0;
+  for (let r = 0; r < N; r++) grid.push(pool.slice(r*N, r*N+N));
+  const board = document.createElement('div');
+  board.className = 'link-board';
+  board.style.gridTemplateColumns = `repeat(${N}, 52px)`;
+  container.appendChild(board);
+  const canConnect = (r1, c1, r2, c2) => {
+    if (r1 === r2) {
+      let ok = true;
+      for (let c = Math.min(c1,c2)+1; c < Math.max(c1,c2); c++) if (grid[r1][c] !== null) ok = false;
+      if (ok) return true;
+    }
+    if (c1 === c2) {
+      let ok = true;
+      for (let r = Math.min(r1,r2)+1; r < Math.max(r1,r2); r++) if (grid[r][c1] !== null) ok = false;
+      if (ok) return true;
+    }
+    if (grid[r1][c2] === null) {
+      let a = true, b = true;
+      for (let c = Math.min(c1,c2)+1; c < Math.max(c1,c2); c++) if (grid[r1][c] !== null) a = false;
+      for (let r = Math.min(r1,r2)+1; r < Math.max(r1,r2); r++) if (grid[r][c2] !== null) b = false;
+      if (a && b) return true;
+    }
+    if (grid[r2][c1] === null) {
+      let a = true, b = true;
+      for (let c = Math.min(c1,c2)+1; c < Math.max(c1,c2); c++) if (grid[r2][c] !== null) a = false;
+      for (let r = Math.min(r1,r2)+1; r < Math.max(r1,r2); r++) if (grid[r][c1] !== null) b = false;
+      if (a && b) return true;
+    }
+    return false;
+  };
+  const render = () => {
+    board.innerHTML = '';
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'link-cell';
+      if (grid[r][c]) {
+        cell.textContent = grid[r][c];
+        if (selected && selected[0] === r && selected[1] === c) cell.classList.add('selected');
+        cell.onclick = () => {
+          if (!selected) { selected = [r,c]; render(); return; }
+          const [sr, sc] = selected;
+          if (sr === r && sc === c) { selected = null; render(); return; }
+          if (grid[sr][sc] === grid[r][c] && canConnect(sr, sc, r, c)) {
+            grid[sr][sc] = null; grid[r][c] = null;
+            matched++;
+            if (matched === N*N/2) { saveGameScore(phone, 'link', 100); setTimeout(() => alert('🎉 连连看完成！'), 100); }
+          }
+          selected = null; render();
+        };
+      } else cell.classList.add('empty');
+      board.appendChild(cell);
+    }
+  };
+  render();
+};
+
+// ---- 15. 石头剪刀布 ----
+gameRenderers['rps'] = function(container, phone) {
+  let score = 0;
+  const status = document.createElement('div');
+  status.className = 'score-display';
+  status.innerHTML = '✊ 分数: <span>0</span>';
+  const btns = document.createElement('div');
+  btns.className = 'rps-buttons';
+  const moves = ['✊','✋','✌️'];
+  const names = ['石头','剪刀','布'];
+  const result = document.createElement('div');
+  result.className = 'rps-result';
+  result.textContent = '点击选择';
+  moves.forEach((m, i) => {
+    const b = document.createElement('button');
+    b.className = 'rps-btn';
+    b.textContent = m;
+    b.onclick = () => {
+      const comp = Math.floor(Math.random()*3);
+      let r = '';
+      if (i === comp) r = '🤝 平局';
+      else if ((i===0&&comp===1)||(i===1&&comp===2)||(i===2&&comp===0)) { r = '🎉 你赢了 +10'; score += 10; saveGameScore(phone, 'rps', score); }
+      else r = '💻 电脑赢了';
+      status.innerHTML = `✊ 分数: <span>${score}</span>`;
+      result.textContent = `你出${names[i]}，电脑出${names[comp]} —— ${r}`;
+    };
+    btns.appendChild(b);
+  });
+  container.appendChild(status); container.appendChild(btns); container.appendChild(result);
+};
+
+// ---- 16. 猜数字 ----
+gameRenderers['guess'] = function(container, phone) {
+  let target = Math.floor(Math.random()*100) + 1;
+  let attempts = 0, score = 0;
+  const status = document.createElement('div');
+  status.className = 'score-display';
+  status.innerHTML = '🔢 分数: <span>0</span>';
+  const group = document.createElement('div');
+  group.className = 'guess-input-group';
+  const input = document.createElement('input');
+  input.type = 'number'; input.min = 1; input.max = 100; input.placeholder = '1-100';
+  const btn = document.createElement('button');
+  btn.className = 'btn btn-primary'; btn.textContent = '猜';
+  group.appendChild(input); group.appendChild(btn);
+  const history = document.createElement('div');
+  history.className = 'guess-history';
+  const msg = document.createElement('p');
+  msg.style.marginTop = '10px';
+  msg.style.color = 'rgba(255,255,255,0.6)';
+  container.appendChild(status); container.appendChild(group); container.appendChild(history); container.appendChild(msg);
+  const check = () => {
+    const v = parseInt(input.value);
+    if (isNaN(v) || v < 1 || v > 100) return;
+    attempts++;
+    const item = document.createElement('span');
+    item.className = 'guess-item';
+    if (v === target) {
+      item.classList.add('correct'); item.textContent = v + ' ✅';
+      const pts = Math.max(0, 100 - attempts*5);
+      score += pts; saveGameScore(phone, 'guess', score);
+      status.innerHTML = `🔢 分数: <span>${score}</span>`;
+      msg.textContent = `🎉 猜对！用了 ${attempts} 次 +${pts} 分`;
+      target = Math.floor(Math.random()*100) + 1; attempts = 0;
+      history.innerHTML = ''; input.value = '';
+    } else if (v < target) { item.classList.add('low'); item.textContent = v + ' ↓'; msg.textContent = '太小了'; }
+    else { item.classList.add('high'); item.textContent = v + ' ↑'; msg.textContent = '太大了'; }
+    history.appendChild(item);
+    input.value = '';
+  };
+  btn.onclick = check;
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') check(); });
+};
+
+// ---- 17. 蛋仔派对 ----
+gameRenderers['eggy'] = function(container, phone) {
+  let score = 0;
+  const status = document.createElement('div');
+  status.className = 'score-display';
+  status.innerHTML = '🥚 分数: <span>0</span>';
+  const btn = document.createElement('button');
+  btn.className = 'btn btn-primary';
+  btn.textContent = '🥚 点击蹦跶';
+  const msg = document.createElement('p');
+  msg.style.marginTop = '12px';
+  msg.style.color = 'rgba(255,255,255,0.6)';
+  btn.onclick = () => {
+    const p = Math.floor(Math.random()*5) + 1;
+    score += p; saveGameScore(phone, 'eggy', score);
+    status.innerHTML = `🥚 分数: <span>${score}</span>`;
+    msg.textContent = `🥚 蹦跶！ +${p} 分`;
+  };
+  container.appendChild(status); container.appendChild(btn); container.appendChild(msg);
+};

@@ -1,0 +1,16 @@
+[Unit]
+Description=Member Backend Service (5003)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/apps/member
+ExecStart=/usr/bin/python3 /opt/apps/member/app_member.py
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/app-member.log
+StandardError=append:/var/log/app-member.log
+
+[Install]
+WantedBy=multi-user.target

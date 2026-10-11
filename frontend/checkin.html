@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>签到中心</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',-apple-system,sans-serif; }
+  body { min-height:100vh; background:linear-gradient(145deg,#f6f9fc,#e9f1f8); display:flex; justify-content:center; align-items:flex-start; padding:20px; }
+  .app-wrapper { width:100%; max-width:1100px; margin:0 auto; }
+  .card { background:rgba(255,255,255,0.85); backdrop-filter:blur(12px); border-radius:32px; box-shadow:0 20px 60px rgba(0,20,40,0.12); padding:40px 36px; width:100%; border:1px solid rgba(255,255,255,0.5); margin-bottom:24px; }
+  .card-login { max-width:520px; margin:40px auto; }
+  .btn { padding:15px; border:none; border-radius:16px; font-size:17px; font-weight:600; cursor:pointer; transition:all 0.25s ease; background:#2d6a9f; color:#fff; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+  .btn:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(45,106,159,0.25); }
+  .btn:disabled { opacity:0.55; cursor:not-allowed; transform:none; box-shadow:none; }
+  .btn-secondary { background:#eef3f8; color:#1f2a3a; }
+  .btn-danger { background:#d45c5c; }
+  .btn-success { background:#2a9d8f; }
+  .btn-warning { background:#e9a23b; }
+  .btn-sm { padding:10px 18px; font-size:14px; width:auto; border-radius:12px; }
+  .btn-block { width:100%; }
+  .form-group { margin-bottom:18px; }
+  .form-group label { display:block; font-size:14px; font-weight:600; color:#1f2a3a; margin-bottom:6px; }
+  .form-group input, .form-group select { width:100%; padding:14px 18px; border:2px solid #e2e9f2; border-radius:16px; font-size:16px; background:#fafcff; outline:none; transition:all 0.2s ease; }
+  .form-group input:focus, .form-group select:focus { border-color:#2d6a9f; box-shadow:0 0 0 4px rgba(45,106,159,0.10); }
+  .msg { margin-top:12px; padding:12px 18px; border-radius:14px; font-size:14px; display:none; }
+  .msg.show { display:block; }
+  .msg.success { background:#d4f0e8; color:#1a6a5a; }
+  .msg.error { background:#f8e4e4; color:#a04040; }
+  .msg.warning { background:#fdf0d8; color:#8a6a2a; }
+  .msg.info { background:#e9f1f8; color:#1f3a5a; }
+  .hidden { display:none !important; }
+  .role-badge { display:inline-block; padding:4px 14px; border-radius:40px; font-size:12px; font-weight:600; background:#e9f1f8; color:#1f2a3a; margin-left:8px; }
+  .role-badge.master { background:#1a3a5c; color:#fff; }
+  .role-badge.deputy { background:#2d6a9f; color:#fff; }
+  .role-badge.familyMaster { background:#e67e22; color:#fff; }
+  .role-badge.deputyGuest { background:#2a9d8f; color:#fff; }
+  .role-badge.guest { background:#d4e2f0; color:#1f2a3a; }
+  .status-badge { display:inline-flex; align-items:center; gap:6px; font-size:13px; background:#eef3f8; padding:4px 14px; border-radius:40px; color:#5b6f82; }
+  .status-badge .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#8a9fb0; }
+  .status-badge.active .dot { background:#2a9d8f; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th { text-align:left; padding:14px 18px; background:rgba(255,255,255,0.5); border-bottom:2px solid rgba(0,0,0,0.04); }
+  td { padding:14px 18px; border-bottom:1px solid rgba(0,0,0,0.03); }
+  .modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.3); backdrop-filter:blur(4px); display:flex; justify-content:center; align-items:center; z-index:1000; padding:20px; opacity:0; pointer-events:none; transition:opacity 0.25s ease; }
+  .modal-overlay.active { opacity:1; pointer-events:all; }
+  .modal-card { background:#fff; border-radius:32px; padding:32px 36px; max-width:620px; width:100%; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 30px 80px rgba(0,0,0,0.2); transform:scale(0.95); transition:transform 0.25s ease; overflow-y:auto; }
+  .modal-overlay.active .modal-card { transform:scale(1); }
+  .modal-card .modal-title { font-size:22px; font-weight:600; margin-bottom:16px; color:#1a2a3a; }
+  .btn-group { display:flex; gap:12px; flex-wrap:wrap; justify-content:flex-end; }
+  .filter-select { padding:8px 16px; border:2px solid #e2e9f2; border-radius:12px; font-size:14px; background:#fafcff; outline:none; }
+  .group-list-item { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid #eef3f8; }
+  .group-list-item .group-info { display:flex; flex-direction:column; gap:2px; }
+  .group-list-item .group-name { font-weight:600; color:#1a2a3a; }
+  .group-list-item .group-meta { font-size:12px; color:#7a8fa2; }
+  .group-list-item .group-actions { display:flex; gap:8px; align-items:center; }
+  .group-list-item .group-actions .btn { padding:6px 14px; font-size:12px; border-radius:10px; width:auto; }
+  .group-list-item.active-group { background:#eaf5f2; border-radius:10px; }
+  .chat-messages { max-height:320px; overflow-y:auto; display:flex; flex-direction:column; gap:12px; margin-bottom:12px; padding-right:4px; }
+  .chat-message { padding:10px 16px; border-radius:16px; max-width:85%; word-wrap:break-word; font-size:14px; line-height:1.6; white-space:pre-wrap; }
+  .chat-message.user { background:#2d6a9f; color:#fff; align-self:flex-end; border-bottom-right-radius:4px; }
+  .chat-message.assistant { background:#eef3f8; color:#1a2a3a; align-self:flex-start; border-bottom-left-radius:4px; }
+  .chat-message.loading { opacity:0.6; font-style:italic; }
+  .quick-questions { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .quick-questions .btn { padding:4px 12px; font-size:12px; border-radius:20px; width:auto; background:#eef3f8; color:#1f2a3a; }
+  .fade-in { animation:fadeIn 0.35s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+  .empty-state { text-align:center; padding:30px 0; color:#8a9fb0; font-size:15px; }
+  .flex-between { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+  .mb-12 { margin-bottom:12px; }
+  @media (max-width:600px) {
+    .card { padding:28px 20px; }
+    .modal-card { padding:24px 20px; }
+    table { font-size:12px; }
+    th, td { padding:8px 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+
+  <!-- 加载中 -->
+  <div id="loadingPage" class="card card-login fade-in">
+    <div class="empty-state">⏳ 正在验证身份 ...</div>
+  </div>
+
+  <!-- 登录页（备用） -->
+  <div id="loginPage" class="card card-login fade-in" style="display:none;">
+    <div class="logo" style="text-align:center;margin-bottom:20px;">
+      <h1 style="font-size:26px;color:#1a2a6c;">🏠 签到中心</h1>
+      <p style="color:#5b6f82;font-size:14px;margin-top:6px;">手机号 + 密码登录</p>
+    </div>
+    <div class="form-group"><label>📱 手机号</label><input type="text" id="loginPhone" placeholder="11位手机号" maxlength="11" /></div>
+    <div class="form-group"><label>🔒 密码</label><input type="password" id="loginPassword" placeholder="密码" /></div>
+    <button class="btn btn-block" id="loginBtn">登录</button>
+    <div id="loginMsg" class="msg"></div>
+    <div style="text-align:center;margin-top:14px;"><a href="/" style="color:#2d6a9f;font-size:13px;text-decoration:none;">← 返回主界面</a></div>
+  </div>
+
+  <!-- 主界面 -->
+  <div id="mainPage" class="fade-in" style="display:none;">
+
+    <!-- 头部 -->
+    <div class="card">
+      <div class="flex-between" style="padding-bottom:20px;border-bottom:2px solid rgba(0,0,0,0.04);margin-bottom:24px;">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span id="displayName" style="font-weight:600;font-size:18px;">用户</span>
+          <span id="displayPhone" style="font-size:14px;color:#5b6f82;">(账号)</span>
+          <span class="role-badge" id="displayRole">游客</span>
+          <span id="displayFamily" style="font-size:13px;color:#5b6f82;">🏠 未加入家庭</span>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-sm" id="backHomeBtn">🏠 返回主界面</button>
+          <button class="btn btn-secondary btn-sm" id="aiAssistantBtn">🤖 AI助手</button>
+          <button class="btn btn-secondary btn-sm" id="changePwdBtn">🔑 修改密码</button>
+          <button class="btn btn-secondary btn-sm" id="refreshBtn">🔄 刷新</button>
+          <button class="btn btn-danger btn-sm" id="logoutBtn">🚪 退出</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 签到活动控制区 -->
+    <div id="controlArea" class="card hidden">
+      <div class="flex-between">
+        <span style="font-size:16px;font-weight:600;">📌 签到活动控制</span>
+        <span class="status-badge" id="activityStatusBadge"><span class="dot"></span><span id="activityStatusText">未激活</span></span>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;">
+        <button class="btn btn-warning btn-sm" id="deactivateActivityBtn">⏹ 停用当前活动</button>
+        <button class="btn btn-secondary btn-sm" id="manageActivityBtn">📋 管理签到活动</button>
+        <button class="btn btn-secondary btn-sm" id="manageFamilyBtn">🏠 家庭管理</button>
+      </div>
+      <div id="controlMsg" class="msg"></div>
+    </div>
+
+    <!-- 游客签到区 -->
+    <div class="card">
+      <div class="flex-between">
+        <span style="font-size:16px;font-weight:600;">✅ 签到</span>
+        <span class="status-badge" id="guestStatusBadge"><span class="dot"></span><span id="guestStatusText">未激活</span></span>
+      </div>
+      <div style="margin-top:12px;">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+          <input type="text" id="guestNameInput" placeholder="请输入您的姓名" maxlength="20" style="flex:1;min-width:180px;padding:14px 18px;border:2px solid #e2e9f2;border-radius:16px;font-size:16px;outline:none;" />
+          <button class="btn btn-success" id="checkinBtn">✅ 签到</button>
+        </div>
+        <div id="guestMsg" class="msg"></div>
+      </div>
+    </div>
+
+    <!-- 用户管理 -->
+    <div id="userMgmtArea" class="card hidden">
+      <div class="flex-between mb-12">
+        <span style="font-size:18px;font-weight:600;">👥 用户管理</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-sm" id="exportUsersBtn">📥 导出用户</button>
+          <button class="btn btn-success btn-sm" id="addUserBtn">➕ 添加用户</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;"><table><thead><tr><th>#</th><th>账号</th><th>姓名</th><th>角色</th><th>家庭</th><th>操作</th></tr></thead><tbody id="userTableBody"><tr><td colspan="6" class="empty-state">暂无用户</td></tr></tbody></table></div>
+      <div id="userMgmtMsg" class="msg" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- 签到记录 -->
+    <div class="card">
+      <div class="flex-between mb-12">
+        <span style="font-size:16px;font-weight:600;">📋 签到记录</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-sm" id="exportRecordsBtn">📥 导出记录</button>
+          <label style="font-size:14px;color:#5b6f82;">筛选：</label>
+          <select id="familyFilterSelect" class="filter-select"><option value="__all">全部家庭</option></select>
+          <span id="recordCount" style="font-size:13px;color:#5b6f82;">共 0 人</span>
+        </div>
+      </div>
+      <div style="overflow-x:auto;"><table><thead><tr><th>#</th><th>姓名</th><th>账号</th><th>家庭</th><th>签到活动</th><th>签到时间</th></tr></thead><tbody id="recordTableBody"><tr><td colspan="6" class="empty-state">暂无签到记录</td></tr></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- 模态框：家庭管理 -->
+  <div class="modal-overlay" id="familyModal">
+    <div class="modal-card" style="max-width:620px;">
+      <div class="modal-title">🏠 家庭管理</div>
+      <div id="familyListContainer"></div>
+      <form id="addFamilyForm" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:16px;border-top:1px solid #eef3f8;padding-top:16px;">
+        <input type="text" id="newFamilyId" placeholder="家庭号(6位数字)" maxlength="6" style="flex:0 0 130px;padding:12px 16px;border:2px solid #e2e9f2;border-radius:16px;font-size:16px;outline:none;" />
+        <input type="text" id="newFamilyName" placeholder="家庭名称" style="flex:1;min-width:140px;padding:12px 16px;border:2px solid #e2e9f2;border-radius:16px;font-size:16px;outline:none;" />
+        <input type="text" id="newFamilyInvite" placeholder="邀请码(6位数字)" maxlength="6" style="flex:0 0 150px;padding:12px 16px;border:2px solid #e2e9f2;border-radius:16px;font-size:16px;outline:none;" />
+        <button type="submit" class="btn btn-success btn-sm">➕ 创建家庭</button>
+      </form>
+      <div id="familyModalMsg" class="msg" style="margin-top:12px;"></div>
+      <div class="btn-group" style="margin-top:16px;"><button class="btn btn-secondary" id="familyModalCloseBtn">关闭</button></div>
+    </div>
+  </div>
+
+  <!-- 模态框：签到活动管理 -->
+  <div class="modal-overlay" id="activityModal">
+    <div class="modal-card" style="max-width:620px;">
+      <div class="modal-title">📌 签到活动管理</div>
+      <div id="activityListContainer"></div>
+      <form id="addActivityForm" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:16px;border-top:1px solid #eef3f8;padding-top:16px;">
+        <select id="newActivityFamily" style="flex:0 0 150px;padding:12px 16px;border:2px solid #e2e9f2;border-radius:16px;font-size:15px;outline:none;">
+          <option value="">选择家庭</option>
+        </select>
+        <input type="text" id="newActivityName" placeholder="活动名称" style="flex:1;min-width:140px;padding:12px 16px;border:2px solid #e2e9f2;border-radius:16px;font-size:16px;outline:none;" />
+        <button type="submit" class="btn btn-success btn-sm">➕ 创建活动</button>
+      </form>
+      <div id="activityModalMsg" class="msg" style="margin-top:12px;"></div>
+      <div class="btn-group" style="margin-top:16px;"><button class="btn btn-secondary" id="activityModalCloseBtn">关闭</button></div>
+    </div>
+  </div>
+
+  <!-- 模态框：添加用户 -->
+  <div class="modal-overlay" id="addUserModal">
+    <div class="modal-card" style="max-width:520px;">
+      <div class="modal-title">➕ 添加用户</div>
+      <form id="addUserForm">
+        <div class="form-group"><label>📱 手机号</label><input type="tel" id="newUserPhone" placeholder="11位手机号" maxlength="11" required /></div>
+        <div class="form-group"><label>🔒 密码</label><input type="text" id="newUserPassword" placeholder="至少4位" required /></div>
+        <div class="form-group"><label>👤 姓名</label><input type="text" id="newUserName" required /></div>
+        <div class="form-group"><label>🎭 角色</label>
+          <select id="newUserRole">
+            <option value="guest">签到游客</option>
+            <option value="familyMaster">主游客</option>
+            <option value="deputyGuest">副游客</option>
+          </select>
+        </div>
+        <div class="form-group"><label>🏠 家庭</label>
+          <select id="newUserFamily"><option value="">无</option></select>
+        </div>
+        <div class="btn-group">
+          <button type="button" class="btn btn-secondary" id="addUserCancelBtn">取消</button>
+          <button type="submit" class="btn btn-success">添加</button>
+        </div>
+      </form>
+      <div id="addUserMsg" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- 模态框：修改密码 -->
+  <div class="modal-overlay" id="changePwdModal">
+    <div class="modal-card">
+      <div class="modal-title">🔑 修改密码</div>
+      <form id="changePwdForm">
+        <div class="form-group"><label>当前密码</label><input type="password" id="oldPwd" required /></div>
+        <div class="form-group"><label>新密码</label><input type="password" id="newPwd" placeholder="至少4位" minlength="4" required /></div>
+        <div class="form-group"><label>确认新密码</label><input type="password" id="confirmPwd" required /></div>
+        <div class="btn-group">
+          <button type="button" class="btn btn-secondary" id="changePwdCancelBtn">取消</button>
+          <button type="submit" class="btn btn-success">确认</button>
+        </div>
+      </form>
+      <div id="changePwdMsg" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- 模态框：AI 助手 -->
+  <div class="modal-overlay" id="aiModal">
+    <div class="modal-card">
+      <div class="modal-title">🤖 AI 智能查询</div>
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-message assistant">👋 你好！我是签到AI助手。可以问我：总签到人数、今日签到、某家庭签到情况、谁签得最多、我的签到记录……</div>
+      </div>
+      <div class="quick-questions">
+        <button class="btn quick-btn" data-q="总签到人数">📊 总签到</button>
+        <button class="btn quick-btn" data-q="今日签到人数">📅 今日</button>
+        <button class="btn quick-btn" data-q="签到最多的家庭">🏆 最多</button>
+        <button class="btn quick-btn" data-q="我的签到记录">👤 我的</button>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <input type="text" id="aiQuestionInput" placeholder="输入问题..." style="flex:1;padding:12px 16px;border:2px solid #e2e9f2;border-radius:16px;font-size:15px;outline:none;" />
+        <button class="btn btn-success" id="aiAskBtn">发送</button>
+      </div>
+      <div class="btn-group" style="margin-top:16px;">
+        <button class="btn btn-secondary" id="aiClearBtn">🧹 清空</button>
+        <button class="btn btn-secondary" id="aiModalCloseBtn">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 模态框：AI 设置 -->
+  <div class="modal-overlay" id="aiSettingsModal">
+    <div class="modal-card" style="max-width:500px;">
+      <div class="modal-title">⚙️ AI 设置</div>
+      <div class="form-group"><label>API 地址</label><input type="text" id="aiApiUrl" placeholder="https://api.deepseek.com/v1" /></div>
+      <div class="form-group"><label>API Key</label><input type="password" id="aiApiKey" placeholder="sk-..." /></div>
+      <div class="form-group"><label>模型</label><input type="text" id="aiModel" placeholder="deepseek-chat" /></div>
+      <div class="btn-group">
+        <button class="btn btn-secondary" id="aiSettingsCancelBtn">取消</button>
+        <button class="btn btn-success" id="aiSettingsSaveBtn">保存</button>
+      </div>
+      <div id="aiSettingsMsg" class="msg"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  const API = '/checkin-api';
+  const AI_CONFIG_KEY = 'checkin_ai_config';
+
+  let token = localStorage.getItem('checkin_token') || '';
+  let currentUser = null;
+  let appData = { users: [], families: [], activities: [], records: [] };
+  let currentFilterFamilyId = '__all';
+  let aiChatHistory = [];
+  let aiBusy = false;
+
+  const $ = id => document.getElementById(id);
+
+  async function api(path, options = {}) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    Object.assign(headers, options.headers || {});
+    const resp = await fetch(API + path, { ...options, headers });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(data.error || '请求失败');
+    return data;
+  }
+
+  // ===== 工具 =====
+  function getRoleLabel(role) {
+    const map = { master:'主控制', deputy:'副控制', familyMaster:'主游客', deputyGuest:'副游客', guest:'签到游客' };
+    return map[role] || role;
+  }
+  function getRoleBadge(role) { return role; }
+  function getFamilyName(fid) {
+    if (!fid) return '无';
+    const f = appData.families.find(x => x.id === fid);
+    return f ? f.name : '已删除';
+  }
+  function formatTime(ts) {
+    if (!ts) return '--';
+    const d = new Date(ts);
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  function isControlRole(role) { return false; }
+  function canManageActivities(u) {
+    if (!u) return false;
+    return ['master','deputy','familyMaster','deputyGuest'].includes(u.role);
+  }
+  function canModifyInvite(u) { return u && (u.role === 'master' || u.role === 'deputy'); }
+  function canAddUser(u) {
+    if (!u) return false;
+    return ['master','deputy','familyMaster'].includes(u.role);
+  }
+  function canChangePassword(u, target) {
+    if (target.phone === u.phone) return true;
+    if (u.role === 'master') return true;
+    if (u.role === 'deputy' && target.role !== 'master') return true;
+    return false;
+  }
+  function canDeleteUser(u, target) {
+    if (u.phone === target.phone) return false;
+    if (target.phone === '18981820927') return false;
+    if (u.role === 'master') return true;
+    if (u.role === 'deputy' && target.role !== 'master') return true;
+    if (u.role === 'familyMaster' && u.familyId === target.familyId) {
+      return ['deputyGuest','guest'].includes(target.role);
+    }
+    return false;
+  }
+  function getActiveActivity() {
+    return appData.activities.find(a => a.isActive === true) || null;
+  }
+
+  // ===== 启动 =====
+  async function boot() {
+    const params = new URLSearchParams(window.location.search);
+    const ssoPhone = params.get('phone');
+    const ssoName = params.get('name');
+
+    if (ssoPhone) {
+      try {
+        const data = await api('/api/auth/sso', {
+          method: 'POST',
+          body: JSON.stringify({ phone: ssoPhone, name: ssoName || '' })
+        });
+        token = data.token;
+        localStorage.setItem('checkin_token', token);
+        currentUser = data.user;
+        window.history.replaceState({}, '', window.location.pathname);
+        await loadData();
+        showMain();
+        return;
+      } catch (e) {
+        console.warn('SSO 失败', e);
+      }
+    }
+
+    if (token) {
+      try {
+        const me = await api('/api/auth/me');
+        currentUser = me.user;
+        await loadData();
+        showMain();
+        return;
+      } catch (e) {
+        localStorage.removeItem('checkin_token');
+        token = '';
+      }
+    }
+
+    $('loadingPage').style.display = 'none';
+    $('loginPage').style.display = 'block';
+  }
+
+  async function loadData() {
+    const data = await api('/api/data/get');
+    appData = {
+      users: data.users || [],
+      families: data.families || [],
+      activities: data.activities || [],
+      records: data.records || []
+    };
+  }
+
+  async function saveData() {
+    await api('/api/data/save', {
+      method: 'POST',
+      body: JSON.stringify(appData)
+    });
+  }
+
+  // ===== 显示主界面 =====
+  function showMain() {
+    $('loadingPage').style.display = 'none';
+    $('loginPage').style.display = 'none';
+    $('mainPage').style.display = 'block';
+
+    $('displayName').textContent = currentUser.name || '用户';
+    $('displayPhone').textContent = '(' + currentUser.phone + ')';
+    $('displayRole').textContent = getRoleLabel(currentUser.role);
+    $('displayRole').className = 'role-badge ' + getRoleBadge(currentUser.role);
+    const fname = getFamilyName(currentUser.familyId);
+    $('displayFamily').textContent = currentUser.familyId ? '🏠 ' + fname : '🌐 全局';
+
+    const canCtrl = canManageActivities(currentUser);
+    $('controlArea').classList.toggle('hidden', !canCtrl);
+
+    const canUserMgmt = ['master','deputy'].includes(currentUser.role) ||
+                        (currentUser.role === 'familyMaster' && currentUser.familyId);
+    $('userMgmtArea').classList.toggle('hidden', !canUserMgmt);
+
+    renderActivityStatus();
+    renderFamilyFilter();
+    renderRecords();
+    if (canUserMgmt) renderUserManagement();
+  }
+
+  function renderActivityStatus() {
+    const active = getActiveActivity();
+    const isActive = !!active;
+    const statusText = isActive ? `已激活：${active.name}` : '未激活签到活动';
+    $('activityStatusText').textContent = statusText;
+    $('activityStatusBadge').className = 'status-badge' + (isActive ? ' active' : '');
+    $('guestStatusText').textContent = isActive ? `可签到：${active.name}` : '未激活，无法签到';
+    $('guestStatusBadge').className = 'status-badge' + (isActive ? ' active' : '');
+    $('guestNameInput').disabled = !isActive;
+    $('checkinBtn').disabled = !isActive;
+    $('guestNameInput').placeholder = isActive ? '请输入您的姓名' : '⛔ 未激活，无法签到';
+  }
+
+  function renderFamilyFilter() {
+    const val = $('familyFilterSelect').value;
+    $('familyFilterSelect').innerHTML = '<option value="__all">全部家庭</option>';
+    appData.families.forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f.id;
+      opt.textContent = f.name;
+      $('familyFilterSelect').appendChild(opt);
+    });
+    if (val && (val === '__all' || appData.families.some(f => f.id === val))) {
+      $('familyFilterSelect').value = val;
+    }
+  }
+
+  $('familyFilterSelect').onchange = function() { currentFilterFamilyId = this.value; renderRecords(); };
+
+  function renderRecords() {
+    const all = appData.records || [];
+    let filtered = all;
+    if (['deputyGuest','familyMaster'].includes(currentUser.role)) {
+      const myFamilyId = currentUser.familyId;
+      filtered = all.filter(r => {
+        const act = appData.activities.find(a => a.id === r.activityId);
+        return act && act.familyId === myFamilyId;
+      });
+    } else if (currentFilterFamilyId !== '__all') {
+      const fid = currentFilterFamilyId;
+      filtered = all.filter(r => {
+        const act = appData.activities.find(a => a.id === r.activityId);
+        return act && act.familyId === fid;
+      });
+    }
+    $('recordCount').textContent = `共 ${filtered.length} 人`;
+    if (filtered.length === 0) {
+      $('recordTableBody').innerHTML = `<tr><td colspan="6" class="empty-state">暂无记录</td></tr>`;
+      return;
+    }
+    const sorted = [...filtered].sort((a, b) => b.timestamp - a.timestamp);
+    let html = '';
+    sorted.forEach((r, i) => {
+      const act = appData.activities.find(a => a.id === r.activityId);
+      const fam = act ? appData.families.find(f => f.id === act.familyId) : null;
+      html += `<tr>
+        <td>${i+1}</td>
+        <td><strong>${r.name}</strong></td>
+        <td>${r.phone}</td>
+        <td>${fam ? fam.name : '已删除'}</td>
+        <td>${act ? act.name : '已删除'}</td>
+        <td>${formatTime(r.timestamp)}</td>
+      </tr>`;
+    });
+    $('recordTableBody').innerHTML = html;
+  }
+
+  function renderUserManagement() {
+    const canAll = ['master','deputy'].includes(currentUser.role);
+    let users = appData.users;
+    if (!canAll) {
+      if (currentUser.role === 'familyMaster' && currentUser.familyId) {
+        users = users.filter(u => u.familyId === currentUser.familyId &&
+          ['deputyGuest','guest'].includes(u.role) || u.phone === currentUser.phone);
+      }
+    }
+    if (users.length === 0) {
+      $('userTableBody').innerHTML = `<tr><td colspan="6" class="empty-state">暂无用户</td></tr>`;
+      return;
+    }
+    let html = '';
+    users.forEach((u, i) => {
+      const canChgPwd = canChangePassword(currentUser, u);
+      const canDel = canDeleteUser(currentUser, u);
+      html += `<tr>
+        <td>${i+1}</td>
+        <td>${u.phone}</td>
+        <td>${u.name || ''}</td>
+        <td><span class="role-badge ${getRoleBadge(u.role)}">${getRoleLabel(u.role)}</span></td>
+        <td>${getFamilyName(u.familyId)}</td>
+        <td>
+          ${canChgPwd ? `<button class="btn btn-secondary btn-sm" data-action="changepwd" data-phone="${u.phone}">🔑改密</button>` : ''}
+          ${canDel ? `<button class="btn btn-danger btn-sm" data-action="delete" data-phone="${u.phone}">🗑️</button>` : ''}
+        </td>
+      </tr>`;
+    });
+    $('userTableBody').innerHTML = html;
+
+    $('userTableBody').querySelectorAll('[data-action="delete"]').forEach(btn => {
+      btn.onclick = async function() {
+        const phone = this.dataset.phone;
+        if (!confirm(`确定删除用户 ${phone} 吗？`)) return;
+        try {
+          await api('/api/users/delete', {
+            method: 'POST',
+            body: JSON.stringify({ phone })
+          });
+          appData.users = appData.users.filter(u => u.phone !== phone);
+          renderUserManagement();
+          showUserMsg('删除成功', 'success');
+        } catch (e) { showUserMsg('删除失败：' + e.message, 'error'); }
+      };
+    });
+    $('userTableBody').querySelectorAll('[data-action="changepwd"]').forEach(btn => {
+      btn.onclick = async function() {
+        const phone = this.dataset.phone;
+        const target = appData.users.find(u => u.phone === phone);
+        if (!target) return;
+        if (!canChangePassword(currentUser, target)) { showUserMsg('无权修改', 'error'); return; }
+        const np = prompt(`为 ${target.name} 设置新密码（至少4位）：`);
+        if (np && np.length >= 4) {
+          // 本地修改 + 保存全部
+          target.password = np;
+          await saveData();
+          showUserMsg('密码修改成功', 'success');
+        } else if (np !== null) {
+          showUserMsg('密码至少4位', 'error');
+        }
+      };
+    });
+  }
+
+  function showUserMsg(t, type) {
+    const el = $('userMgmtMsg');
+    el.textContent = t;
+    el.className = `msg show ${type}`;
+    setTimeout(() => { el.className = 'msg'; }, 3000);
+  }
+
+  // ===== 签到 =====
+  $('checkinBtn').onclick = async function() {
+    const active = getActiveActivity();
+    if (!active) { showGuestMsg('当前没有激活的活动', 'warning'); return; }
+    const name = $('guestNameInput').value.trim();
+    if (!name) { showGuestMsg('请输入姓名', 'error'); return; }
+    try {
+      const data = await api('/api/records/add', {
+        method: 'POST',
+        body: JSON.stringify({ activityId: active.id, name })
+      });
+      appData.records.push(data.record);
+      $('guestNameInput').value = '';
+      showGuestMsg('签到成功！', 'success');
+      renderRecords();
+    } catch (e) {
+      showGuestMsg(e.message, 'error');
+    }
+  };
+
+  function showGuestMsg(t, type) {
+    const el = $('guestMsg');
+    el.textContent = t;
+    el.className = `msg show ${type}`;
+    setTimeout(() => { el.className = 'msg'; }, 3000);
+  }
+
+  // ===== 停用当前活动 =====
+  $('deactivateActivityBtn').onclick = async function() {
+    const active = getActiveActivity();
+    if (!active) { showControlMsg('当前没有激活的活动', 'warning'); return; }
+    try {
+      const data = await api('/api/activities/toggle', {
+        method: 'POST',
+        body: JSON.stringify({ id: active.id })
+      });
+      active.isActive = false;
+      renderActivityStatus();
+      renderActivityList();
+      showControlMsg('已停用', 'success');
+    } catch (e) { showControlMsg(e.message, 'error'); }
+  };
+
+  function showControlMsg(t, type) {
+    const el = $('controlMsg');
+    el.textContent = t;
+    el.className = `msg show ${type}`;
+    setTimeout(() => { el.className = 'msg'; }, 3000);
+  }
+
+  // ===== 家庭管理 =====
+  $('manageFamilyBtn').onclick = function() {
+    if (!canModifyInvite(currentUser)) { alert('权限不足'); return; }
+    renderFamilyList();
+    $('familyModal').classList.add('active');
+  };
+  $('familyModalCloseBtn').onclick = () => $('familyModal').classList.remove('active');
+
+  function renderFamilyList() {
+    const families = appData.families || [];
+    if (families.length === 0) {
+      $('familyListContainer').innerHTML = '<div class="empty-state">暂无家庭</div>';
+      return;
+    }
+    let html = '';
+    families.forEach(f => {
+      const canModInv = canModifyInvite(currentUser);
+      html += `<div class="group-list-item">
+        <div class="group-info">
+          <span class="group-name">${f.name}</span>
+          <span class="group-meta">家庭号: ${f.id} | 邀请码: ${f.inviteCode || '未设置'} | 创建者: ${f.createdBy}</span>
+        </div>
+        <div class="group-actions">
+          ${canModInv ? `<button class="btn btn-secondary btn-sm" data-action="modifyinvite" data-id="${f.id}">✏️邀请码</button>` : ''}
+          ${canModInv ? `<button class="btn btn-danger btn-sm" data-action="delete-family" data-id="${f.id}">删除</button>` : ''}
+        </div>
+      </div>`;
+    });
+    $('familyListContainer').innerHTML = html;
+
+    $('familyListContainer').querySelectorAll('[data-action="modifyinvite"]').forEach(btn => {
+      btn.onclick = async function() {
+        const id = this.dataset.id;
+        const ni = prompt('输入新的6位数字邀请码：');
+        if (ni && /^\d{6}$/.test(ni)) {
+          const f = appData.families.find(x => x.id === id);
+          if (f) { f.inviteCode = ni; await saveData(); renderFamilyList(); }
+        } else if (ni !== null) { alert('邀请码必须是6位数字'); }
+      };
+    });
+    $('familyListContainer').querySelectorAll('[data-action="delete-family"]').forEach(btn => {
+      btn.onclick = async function() {
+        const id = this.dataset.id;
+        if (!confirm('确定删除该家庭？')) return;
+        appData.activities = appData.activities.filter(a => a.familyId !== id);
+        appData.families = appData.families.filter(f => f.id !== id);
+        await saveData();
+        renderFamilyList();
+        renderFamilyFilter();
+        renderRecords();
+        renderActivityStatus();
+      };
+    });
+  }
+
+  $('addFamilyForm').onsubmit = async function(e) {
+    e.preventDefault();
+    if (!canModifyInvite(currentUser)) { alert('权限不足'); return; }
+    const id = $('newFamilyId').value.trim();
+    const name = $('newFamilyName').value.trim();
+    const invite = $('newFamilyInvite').value.trim();
+    if (!/^\d{6}$/.test(id)) { alert('家庭号必须是6位数字'); return; }
+    if (!name) { alert('请输入家庭名称'); return; }
+    try {
+      const data = await api('/api/families/add', {
+        method: 'POST',
+        body: JSON.stringify({ id, name, inviteCode: invite })
+      });
+      appData.families.push(data.family);
+      renderFamilyList();
+      renderFamilyFilter();
+      $('newFamilyId').value = '';
+      $('newFamilyName').value = '';
+      $('newFamilyInvite').value = '';
+      alert('家庭创建成功');
+    } catch (e) { alert(e.message); }
+  };
+
+  // ===== 活动管理 =====
+  $('manageActivityBtn').onclick = function() {
+    renderActivityList();
+    const sel = $('newActivityFamily');
+    sel.innerHTML = '<option value="">选择家庭</option>';
+    appData.families.forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f.id;
+      opt.textContent = f.name;
+      sel.appendChild(opt);
+    });
+    $('activityModal').classList.add('active');
+  };
+  $('activityModalCloseBtn').onclick = () => $('activityModal').classList.remove('active');
+
+  function renderActivityList() {
+    const activities = appData.activities || [];
+    if (activities.length === 0) {
+      $('activityListContainer').innerHTML = '<div class="empty-state">暂无签到活动</div>';
+      return;
+    }
+    let html = '';
+    const grouped = {};
+    activities.forEach(a => {
+      const fid = a.familyId || 'unknown';
+      if (!grouped[fid]) grouped[fid] = [];
+      grouped[fid].push(a);
+    });
+    for (const fid in grouped) {
+      const fam = appData.families.find(f => f.id === fid);
+      html += `<div style="font-weight:600;margin:8px 0 4px 8px;color:#2d6a9f;">🏠 ${fam ? fam.name : '已删除家庭'}</div>`;
+      grouped[fid].forEach(a => {
+        const isActive = a.isActive === true;
+        html += `<div class="group-list-item ${isActive ? 'active-group' : ''}">
+          <div class="group-info">
+            <span class="group-name">${a.name}</span>
+            <span class="group-meta">ID: ${a.id} | ${isActive ? '✅ 已激活' : '⏸ 未激活'}</span>
+          </div>
+          <div class="group-actions">
+            <button class="btn btn-secondary btn-sm" data-action="toggle" data-id="${a.id}">${isActive ? '停用' : '激活'}</button>
+            <button class="btn btn-danger btn-sm" data-action="delete-activity" data-id="${a.id}">删除</button>
+          </div>
+        </div>`;
+      });
+    }
+    $('activityListContainer').innerHTML = html;
+
+    $('activityListContainer').querySelectorAll('[data-action="toggle"]').forEach(btn => {
+      btn.onclick = async function() {
+        const id = this.dataset.id;
+        try {
+          const data = await api('/api/activities/toggle', {
+            method: 'POST',
+            body: JSON.stringify({ id })
+          });
+          // 更新本地
+          appData.activities.forEach(a => a.isActive = false);
+          const act = appData.activities.find(a => a.id === id);
+          if (act) act.isActive = data.activity.isActive;
+          renderActivityList();
+          renderActivityStatus();
+        } catch (e) { alert(e.message); }
+      };
+    });
+    $('activityListContainer').querySelectorAll('[data-action="delete-activity"]').forEach(btn => {
+      btn.onclick = async function() {
+        const id = this.dataset.id;
+        if (!confirm('确定删除该活动？')) return;
+        appData.activities = appData.activities.filter(a => a.id !== id);
+        await saveData();
+        renderActivityList();
+        renderActivityStatus();
+      };
+    });
+  }
+
+  $('addActivityForm').onsubmit = async function(e) {
+    e.preventDefault();
+    const familyId = $('newActivityFamily').value;
+    const name = $('newActivityName').value.trim();
+    if (!familyId || !name) { alert('请填写完整'); return; }
+    try {
+      const data = await api('/api/activities/add', {
+        method: 'POST',
+        body: JSON.stringify({ familyId, name })
+      });
+      appData.activities.push(data.activity);
+      renderActivityList();
+      $('newActivityName').value = '';
+    } catch (e) { alert(e.message); }
+  };
+
+  // ===== 添加用户 =====
+  $('addUserBtn').onclick = function() {
+    if (!canAddUser(currentUser)) { alert('权限不足'); return; }
+    const sel = $('newUserFamily');
+    sel.innerHTML = '<option value="">无</option>';
+    appData.families.forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f.id;
+      opt.textContent = f.name;
+      sel.appendChild(opt);
+    });
+    $('addUserModal').classList.add('active');
+  };
+  $('addUserCancelBtn').onclick = () => $('addUserModal').classList.remove('active');
+
+  $('addUserForm').onsubmit = async function(e) {
+    e.preventDefault();
+    const phone = $('newUserPhone').value.trim();
+    const password = $('newUserPassword').value.trim();
+    const name = $('newUserName').value.trim();
+    const role = $('newUserRole').value;
+    const familyId = $('newUserFamily').value || null;
+    if (!/^\d{11}$/.test(phone)) { alert('手机号格式错误'); return; }
+    if (password.length < 4) { alert('密码至少4位'); return; }
+    try {
+      await api('/api/users/add', {
+        method: 'POST',
+        body: JSON.stringify({ phone, password, name, role, familyId })
+      });
+      appData.users.push({ phone, password, name, role, familyId });
+      $('addUserModal').classList.remove('active');
+      $('addUserForm').reset();
+      renderUserManagement();
+    } catch (e) { alert(e.message); }
+  };
+
+  // ===== 导出 =====
+  $('exportUsersBtn').onclick = function() {
+    const users = appData.users || [];
+    if (!users.length) { alert('暂无用户'); return; }
+    const header = '手机号,姓名,角色,家庭\n';
+    const rows = users.map(u => `${u.phone},${u.name||''},${getRoleLabel(u.role)},${getFamilyName(u.familyId)}`);
+    const csv = header + rows.join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `用户列表_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  };
+
+  $('exportRecordsBtn').onclick = function() {
+    const records = appData.records || [];
+    if (!records.length) { alert('暂无记录'); return; }
+    const header = '序号,姓名,账号,家庭,签到活动,签到时间\n';
+    const rows = records.map((r, i) => {
+      const act = appData.activities.find(a => a.id === r.activityId);
+      const fam = act ? appData.families.find(f => f.id === act.familyId) : null;
+      return `${i+1},${r.name},${r.phone},${fam ? fam.name : '已删除'},${act ? act.name : '已删除'},${formatTime(r.timestamp)}`;
+    });
+    const csv = header + rows.join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `签到记录_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  };
+
+  // ===== 修改密码 =====
+  $('changePwdBtn').onclick = () => $('changePwdModal').classList.add('active');
+  $('changePwdCancelBtn').onclick = () => $('changePwdModal').classList.remove('active');
+  $('changePwdForm').onsubmit = async function(e) {
+    e.preventDefault();
+    const old = $('oldPwd').value;
+    const np = $('newPwd').value;
+    const cf = $('confirmPwd').value;
+    if (currentUser.password !== old) { alert('当前密码错误'); return; }
+    if (np.length < 4) { alert('新密码至少4位'); return; }
+    if (np !== cf) { alert('两次密码不一致'); return; }
+    const user = appData.users.find(u => u.phone === currentUser.phone);
+    if (user) {
+      user.password = np;
+      currentUser.password = np;
+      await saveData();
+      alert('修改成功');
+      $('changePwdModal').classList.remove('active');
+    }
+  };
+
+  // ===== AI 助手 =====
+  function loadAIConfig() {
+    try {
+      const r = localStorage.getItem(AI_CONFIG_KEY);
+      return r ? JSON.parse(r) : null;
+    } catch (e) { return null; }
+  }
+  function saveAIConfig(cfg) { localStorage.setItem(AI_CONFIG_KEY, JSON.stringify(cfg)); }
+
+  $('aiAssistantBtn').onclick = function() {
+    $('aiModal').classList.add('active');
+  };
+  $('aiModalCloseBtn').onclick = () => $('aiModal').classList.remove('active');
+
+  $('aiClearBtn').onclick = function() {
+    aiChatHistory = [];
+    $('chatMessages').innerHTML = '<div class="chat-message assistant">🧹 对话已清空</div>';
+  };
+
+  function appendChatMessage(role, text) {
+    const div = document.createElement('div');
+    div.className = 'chat-message ' + role;
+    div.textContent = text;
+    $('chatMessages').appendChild(div);
+    $('chatMessages').scrollTop = $('chatMessages').scrollHeight;
+    return div;
+  }
+
+  function getLocalAIResponse(q) {
+    const ql = q.toLowerCase();
+    const records = appData.records || [];
+    const families = appData.families || [];
+    const activities = appData.activities || [];
+    if (ql.includes('总签到')) return `📊 总签到记录数：${records.length} 人次`;
+    if (ql.includes('今日')) {
+      const today = new Date(); today.setHours(0,0,0,0);
+      const cnt = records.filter(r => r.timestamp >= today.getTime()).length;
+      return `📅 今日签到：${cnt} 人`;
+    }
+    const fm = ql.match(/家庭\s*['"“”]?([^'"“”]+)['"“”]?/);
+    if (fm) {
+      const fname = fm[1].trim();
+      const f = families.find(x => x.name.includes(fname) || fname.includes(x.name));
+      if (f) {
+        const actIds = activities.filter(a => a.familyId === f.id).map(a => a.id);
+        const cnt = records.filter(r => actIds.includes(r.activityId)).length;
+        return `🏠 家庭“${f.name}”共有 ${cnt} 人签到`;
+      } else return `❌ 未找到家庭“${fname}”`;
+    }
+    if (ql.includes('最多') || ql.includes('排名')) {
+      if (!families.length) return '暂无家庭';
+      let max = 0, maxF = null;
+      families.forEach(f => {
+        const actIds = activities.filter(a => a.familyId === f.id).map(a => a.id);
+        const c = records.filter(r => actIds.includes(r.activityId)).length;
+        if (c > max) { max = c; maxF = f; }
+      });
+      if (maxF) return `🏆 签到最多的是“${maxF.name}”，共 ${max} 人次`;
+    }
+    if (ql.includes('我的签到')) {
+      const my = records.filter(r => r.phone === currentUser.phone);
+      if (!my.length) return '您还没有签到记录';
+      let s = `👤 您共签到 ${my.length} 次\n`;
+      my.forEach(r => {
+        const act = activities.find(a => a.id === r.activityId);
+        const fam = act ? families.find(f => f.id === act.familyId) : null;
+        s += `  ${formatTime(r.timestamp)} 在“${fam ? fam.name : '已删除'}”的“${act ? act.name : '已删除'}”\n`;
+      });
+      return s;
+    }
+    return '❓ 试试问：总签到人数、今日签到、家庭“XX”签到情况、签到最多的家庭、我的签到记录';
+  }
+
+  async function handleAskAI() {
+    if (aiBusy) return;
+    const q = $('aiQuestionInput').value.trim();
+    if (!q) return;
+    appendChatMessage('user', q);
+    $('aiQuestionInput').value = '';
+    aiBusy = true;
+    $('aiAskBtn').disabled = true;
+    const placeholder = appendChatMessage('assistant', '正在思考中…');
+    placeholder.classList.add('loading');
+
+    const cfg = loadAIConfig();
+    let answer;
+    if (cfg && cfg.apiUrl && cfg.apiKey && cfg.model) {
+      try {
+        let url = cfg.apiUrl.replace(/\/+$/, '');
+        if (!/\/chat\/completions$/i.test(url)) url += '/chat/completions';
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + cfg.apiKey
+          },
+          body: JSON.stringify({
+            model: cfg.model,
+            messages: [
+              { role: 'system', content: '你是签到系统助手，回答简洁清晰，不含密码等敏感信息。' },
+              ...aiChatHistory.slice(-8),
+              { role: 'user', content: q }
+            ],
+            temperature: 0.6,
+            stream: false
+          })
+        });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+        answer = data.choices[0].message.content;
+        aiChatHistory.push({ role: 'user', content: q });
+        aiChatHistory.push({ role: 'assistant', content: answer });
+      } catch (e) {
+        answer = getLocalAIResponse(q) + `\n\n⚠️ AI 调用失败：${e.message}`;
+      }
+    } else {
+      answer = getLocalAIResponse(q) + '\n\n💡 未配置 AI，使用本地规则回答。';
+    }
+    placeholder.classList.remove('loading');
+    placeholder.textContent = answer;
+    aiBusy = false;
+    $('aiAskBtn').disabled = false;
+  }
+
+  $('aiAskBtn').onclick = handleAskAI;
+  $('aiQuestionInput').addEventListener('keydown', e => { if (e.key === 'Enter') handleAskAI(); });
+  document.querySelectorAll('.quick-btn').forEach(btn => {
+    btn.onclick = function() {
+      if (aiBusy) return;
+      $('aiQuestionInput').value = this.dataset.q;
+      handleAskAI();
+    };
+  });
+
+  // ===== 其它 =====
+  $('backHomeBtn').onclick = () => window.location.href = '/';
+  $('refreshBtn').onclick = async function() {
+    await loadData();
+    showMain();
+  };
+  $('logoutBtn').onclick = function() {
+    if (!confirm('确定退出？')) return;
+    localStorage.removeItem('checkin_token');
+    location.reload();
+  };
+
+  // 登录页
+  $('loginBtn').onclick = async function() {
+    const phone = $('loginPhone').value.trim();
+    const password = $('loginPassword').value.trim();
+    if (!phone || !password) { showLoginMsg('请输入账号和密码', 'error'); return; }
+    try {
+      const data = await api('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ phone, password })
+      });
+      token = data.token;
+      localStorage.setItem('checkin_token', token);
+      currentUser = data.user;
+      await loadData();
+      showMain();
+    } catch (e) { showLoginMsg(e.message, 'error'); }
+  };
+
+  function showLoginMsg(t, type) {
+    const el = $('loginMsg');
+    el.textContent = t;
+    el.className = 'msg show ' + type;
+  }
+
+  // 启动
+  boot();
+})();
+</script>
+
+</body>
+</html>

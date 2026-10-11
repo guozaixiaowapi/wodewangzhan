@@ -1,0 +1,16 @@
+[Unit]
+Description=Game Backend Service (5005)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/apps/game
+ExecStart=/usr/bin/python3 /opt/apps/game/app_game.py
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/app-game.log
+StandardError=append:/var/log/app-game.log
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,16 @@
+[Unit]
+Description=Main Backend Service (5000)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/apps/main
+ExecStart=/usr/bin/python3 /opt/apps/main/app_main.py
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/app-main.log
+StandardError=append:/var/log/app-main.log
+
+[Install]
+WantedBy=multi-user.target

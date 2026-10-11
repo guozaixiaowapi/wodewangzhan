@@ -1,0 +1,16 @@
+[Unit]
+Description=SMS Backend Service (5002)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/apps/sms
+ExecStart=/usr/bin/python3 /opt/apps/sms/app_sms.py
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/app-sms.log
+StandardError=append:/var/log/app-sms.log
+
+[Install]
+WantedBy=multi-user.target

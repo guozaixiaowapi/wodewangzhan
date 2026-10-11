@@ -1,0 +1,16 @@
+[Unit]
+Description=Jingqu Backend Service (5001)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/apps/jingqu
+ExecStart=/usr/bin/python3 /opt/apps/jingqu/app.py
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/app-jingqu.log
+StandardError=append:/var/log/app-jingqu.log
+
+[Install]
+WantedBy=multi-user.target

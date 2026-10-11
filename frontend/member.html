@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>会员中心</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI','PingFang SC',sans-serif; background:#f0f4f8; color:#1a2332; min-height:100vh; }
+
+  /* 登录页 */
+  .login-page { display:flex; justify-content:center; align-items:center; min-height:100vh; background:linear-gradient(135deg,#1a2a6c,#2d4373,#4a6fa5); padding:20px; }
+  .login-card { background:#fff; border-radius:24px; box-shadow:0 20px 60px rgba(0,0,0,0.35); padding:44px 36px 36px; width:100%; max-width:400px; }
+  .login-card .logo { text-align:center; margin-bottom:28px; }
+  .login-card .logo h1 { font-size:26px; font-weight:700; color:#1a2a6c; }
+  .login-card .logo p { color:#6b7a8f; font-size:14px; margin-top:4px; }
+  .form-group { margin-bottom:18px; }
+  .form-group label { display:block; font-size:14px; font-weight:600; color:#2d3748; margin-bottom:6px; }
+  .form-group input, .form-group select { width:100%; padding:12px 16px; border:2px solid #e2e8f0; border-radius:12px; font-size:15px; background:#f7fafc; outline:none; }
+  .form-group input:focus, .form-group select:focus { border-color:#4a6fa5; background:#fff; }
+  .btn { padding:12px 20px; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; transition:0.2s; }
+  .btn-login { width:100%; padding:14px; background:linear-gradient(135deg,#1a2a6c,#4a6fa5); color:#fff; font-size:16px; }
+  .btn-primary { background:#1a2a6c; color:#fff; }
+  .btn-primary:hover { background:#2d4373; }
+  .btn-success { background:#38a169; color:#fff; }
+  .btn-success:hover { background:#2f855a; }
+  .btn-warning { background:#d69e2e; color:#fff; }
+  .btn-warning:hover { background:#b7791f; }
+  .btn-danger { background:#e53e3e; color:#fff; }
+  .btn-danger:hover { background:#c53030; }
+  .btn-secondary { background:#edf2f7; color:#2d3748; }
+  .btn-secondary:hover { background:#e2e8f0; }
+  .btn-sm { padding:6px 14px; font-size:13px; border-radius:8px; }
+  .login-error { color:#e53e3e; font-size:14px; text-align:center; margin-top:12px; min-height:20px; }
+
+  /* 管理页 */
+  .admin-page { display:none; max-width:1400px; margin:20px auto; background:#fff; border-radius:28px; box-shadow:0 20px 60px rgba(0,0,0,0.12); padding:24px 32px 32px; }
+  .admin-header { display:flex; justify-content:space-between; align-items:center; padding-bottom:18px; border-bottom:2px solid #edf2f7; flex-wrap:wrap; gap:12px; }
+  .admin-header .user-info { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .badge { padding:4px 14px; border-radius:30px; font-size:13px; font-weight:600; background:#e2e8f0; }
+  .badge.master { background:#1a2a6c; color:#fff; }
+  .badge.sub { background:#4a6fa5; color:#fff; }
+  .badge.member { background:#68a5b3; color:#fff; }
+  .toolbar { display:flex; flex-wrap:wrap; gap:12px; margin:20px 0 18px; align-items:center; }
+  .toolbar .btn { padding:8px 20px; border-radius:30px; font-size:14px; }
+  .table-wrap { overflow-x:auto; border-radius:16px; border:1px solid #edf2f7; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th { background:#f7fafc; text-align:left; padding:14px 16px; font-weight:600; color:#2d3748; border-bottom:2px solid #e2e8f0; white-space:nowrap; }
+  td { padding:12px 16px; border-bottom:1px solid #edf2f7; }
+  .role-tag { display:inline-block; padding:2px 12px; border-radius:30px; font-size:12px; font-weight:600; }
+  .role-tag.master { background:#1a2a6c; color:#fff; }
+  .role-tag.sub { background:#4a6fa5; color:#fff; }
+  .role-tag.member { background:#68a5b3; color:#fff; }
+  .action-btns { display:flex; gap:6px; flex-wrap:wrap; }
+  .action-btns .btn-sm { padding:4px 12px; font-size:12px; border-radius:30px; }
+  .empty-msg { text-align:center; padding:40px 0; color:#718096; }
+
+  /* 模态框 */
+  .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.45); justify-content:center; align-items:center; z-index:999; padding:20px; }
+  .modal-overlay.active { display:flex; }
+  .modal-box { background:#fff; border-radius:24px; padding:32px 36px; max-width:480px; width:100%; max-height:90vh; overflow-y:auto; }
+  .modal-box h3 { font-size:20px; margin-bottom:16px; color:#1a2332; }
+  .modal-box .form-group { margin-bottom:16px; }
+  .modal-box .form-actions { display:flex; justify-content:flex-end; gap:12px; margin-top:20px; }
+  .modal-error { color:#e53e3e; font-size:13px; margin-top:8px; min-height:18px; }
+
+  @media (max-width:600px) {
+    .admin-page { padding:16px; margin:10px; border-radius:20px; }
+    .login-card { padding:28px 20px; }
+    .modal-box { padding:24px 20px; }
+    .admin-header { flex-direction:column; align-items:flex-start; }
+    table { font-size:12px; }
+    th, td { padding:8px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 登录页 -->
+<div id="loginPage" class="login-page">
+  <div class="login-card">
+    <div class="logo">
+      <h1>🛡️ 会员中心</h1>
+      <p>请输入卡号和卡密</p>
+    </div>
+    <div class="form-group">
+      <label>卡号</label>
+      <input type="text" id="loginAccount" maxlength="12" placeholder="12位卡号" autocomplete="off" />
+    </div>
+    <div class="form-group">
+      <label>卡密</label>
+      <input type="password" id="loginPassword" placeholder="卡密" />
+    </div>
+    <button class="btn btn-login" id="loginBtn">登 录</button>
+    <div id="loginError" class="login-error"></div>
+  </div>
+</div>
+
+<!-- 管理页 -->
+<div id="adminPage" class="admin-page">
+  <div class="admin-header">
+    <div class="user-info">
+      <span style="font-weight:600;">👤 <span id="currentAccountDisplay"></span></span>
+      <span class="badge" id="currentRoleBadge">角色</span>
+      <span class="badge" id="currentLevelBadge"></span>
+    </div>
+    <div>
+      <button class="btn btn-secondary btn-sm" id="logoutBtn">退出</button>
+    </div>
+  </div>
+
+  <div class="toolbar" id="toolbar"></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>卡号</th>
+          <th>姓名</th>
+          <th>等级</th>
+          <th>密码</th>
+          <th>积分</th>
+          <th>余额</th>
+          <th>角色</th>
+          <th style="min-width:180px;">操作</th>
+        </tr>
+      </thead>
+      <tbody id="userTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 模态框 -->
+<div id="modalOverlay" class="modal-overlay">
+  <div class="modal-box">
+    <h3 id="modalTitle">标题</h3>
+    <div id="modalBody"></div>
+    <div id="modalError" class="modal-error"></div>
+    <div class="form-actions">
+      <button class="btn btn-secondary" id="modalCancelBtn">取消</button>
+      <button class="btn btn-primary" id="modalConfirmBtn">确定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =====================================================
+// 全局
+// =====================================================
+const API = '/member-api';
+let token = localStorage.getItem('member_token') || '';
+let currentUser = null;
+let users = [];
+let levels = [];
+
+const $ = id => document.getElementById(id);
+
+async function api(path, options = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  Object.assign(headers, options.headers || {});
+  const resp = await fetch(API + path, { ...options, headers });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(data.error || '请求失败');
+  return data;
+}
+
+// =====================================================
+// 登录
+// =====================================================
+$('loginBtn').onclick = async function () {
+  const account = $('loginAccount').value.trim();
+  const password = $('loginPassword').value.trim();
+  if (!account || !password) { $('loginError').textContent = '请输入卡号和卡密'; return; }
+  try {
+    const data = await api('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ account, password })
+    });
+    token = data.token;
+    localStorage.setItem('member_token', token);
+    currentUser = data.user;
+    $('loginError').textContent = '';
+    $('loginPage').style.display = 'none';
+    $('adminPage').style.display = 'block';
+    await loadLevels();
+    await loadUsers();
+    renderAdmin();
+  } catch (e) {
+    $('loginError').textContent = e.message;
+  }
+};
+
+$('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') $('loginBtn').click(); });
+
+// =====================================================
+// 启动检查
+// =====================================================
+async function boot() {
+  if (!token) return;
+  try {
+    const data = await api('/api/auth/me');
+    currentUser = data.user;
+    $('loginPage').style.display = 'none';
+    $('adminPage').style.display = 'block';
+    await loadLevels();
+    await loadUsers();
+    renderAdmin();
+  } catch (e) {
+    localStorage.removeItem('member_token');
+    token = '';
+  }
+}
+
+// =====================================================
+// 加载数据
+// =====================================================
+async function loadLevels() {
+  const data = await api('/api/levels/list');
+  levels = data.levels;
+}
+
+async function loadUsers() {
+  const data = await api('/api/users/list');
+  users = data.users;
+}
+
+// =====================================================
+// 渲染
+// =====================================================
+function renderAdmin() {
+  $('currentAccountDisplay').textContent = currentUser.account;
+  const roleLabel = { master: '主管理', sub: '副管理', member: '会员' }[currentUser.role] || '会员';
+  const badge = $('currentRoleBadge');
+  badge.textContent = roleLabel;
+  badge.className = 'badge ' + currentUser.role;
+  $('currentLevelBadge').textContent = currentUser.level || '';
+  renderToolbar();
+  renderTable();
+}
+
+function renderToolbar() {
+  const toolbar = $('toolbar');
+  let html = '';
+  const isMaster = currentUser.role === 'master';
+  const isSub = currentUser.role === 'sub';
+
+  if (isMaster) {
+    html += `<button class="btn btn-primary" id="addUserBtn">➕ 添加用户</button>`;
+    html += `<button class="btn btn-warning" id="manageLevelsBtn">📚 等级管理</button>`;
+  } else if (isSub) {
+    html += `<button class="btn btn-primary" id="addUserBtn">➕ 添加用户</button>`;
+  }
+  html += `<button class="btn btn-secondary" id="refreshBtn">🔄 刷新</button>`;
+
+  toolbar.innerHTML = html;
+
+  if ($('addUserBtn')) $('addUserBtn').onclick = openAddUser;
+  if ($('manageLevelsBtn')) $('manageLevelsBtn').onclick = openManageLevels;
+  if ($('refreshBtn')) $('refreshBtn').onclick = async () => {
+    await loadUsers();
+    renderTable();
+  };
+}
+
+function renderTable() {
+  const tbody = $('userTableBody');
+  if (users.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-msg">暂无用户</td></tr>';
+    return;
+  }
+  let html = '';
+  users.forEach(u => {
+    const roleLabel = { master: '主管理', sub: '副管理', member: '会员' }[u.role] || '会员';
+    const isSelf = u.account === currentUser.account;
+    const canEdit = (currentUser.role === 'master') ||
+                    (currentUser.role === 'sub' && u.role === 'member') ||
+                    isSelf;
+    const canDel = !u.fixed && !isSelf &&
+                   (currentUser.role === 'master' ||
+                    (currentUser.role === 'sub' && u.role === 'member'));
+    const canCharge = currentUser.role === 'master' && !isSelf;
+
+    html += `<tr>
+      <td>${u.account}</td>
+      <td>${u.name || ''}</td>
+      <td>${u.level || ''}</td>
+      <td>${u.password || '****'}</td>
+      <td>${u.points ?? 0}</td>
+      <td>${(u.balance ?? 0).toFixed(2)}</td>
+      <td><span class="role-tag ${u.role}">${roleLabel}${u.fixed ? ' 🔒' : ''}</span></td>
+      <td>
+        <div class="action-btns">
+          ${canEdit ? `<button class="btn-sm btn-primary" onclick="openEditUser('${u.account}')">编辑</button>` : ''}
+          ${canDel ? `<button class="btn-sm btn-danger" onclick="deleteUser('${u.account}')">删除</button>` : ''}
+          ${canCharge ? `<button class="btn-sm btn-success" onclick="openCharge('${u.account}', 1)">充值</button>` : ''}
+          ${canCharge ? `<button class="btn-sm btn-warning" onclick="openCharge('${u.account}', -1)">扣款</button>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+}
+
+// =====================================================
+// 模态框
+// =====================================================
+let modalMode = '';
+let modalData = {};
+
+function showModal(title, bodyHTML, mode, data = {}) {
+  $('modalTitle').textContent = title;
+  $('modalBody').innerHTML = bodyHTML;
+  $('modalError').textContent = '';
+  $('modalOverlay').classList.add('active');
+  modalMode = mode;
+  modalData = data;
+}
+
+function closeModal() {
+  $('modalOverlay').classList.remove('active');
+  modalMode = '';
+  modalData = {};
+}
+
+$('modalCancelBtn').onclick = closeModal;
+$('modalOverlay').onclick = e => { if (e.target === $('modalOverlay')) closeModal(); };
+
+// =====================================================
+// 添加用户
+// =====================================================
+function openAddUser() {
+  const isMaster = currentUser.role === 'master';
+  const roleOptions = isMaster
+    ? `<option value="sub">副管理</option><option value="member" selected>会员</option>`
+    : `<option value="member" selected>会员</option>`;
+
+  const levelOptions = levels.map(l => `<option value="${l}">${l}</option>`).join('');
+
+  const body = `
+    <div class="form-group"><label>卡号（12位数字）</label><input type="text" id="addAccount" maxlength="12" /></div>
+    <div class="form-group"><label>姓名</label><input type="text" id="addName" /></div>
+    <div class="form-group"><label>等级</label><select id="addLevel">${levelOptions}</select></div>
+    <div class="form-group"><label>密码（至少4位）</label><input type="text" id="addPassword" /></div>
+    <div class="form-group"><label>积分</label><input type="number" id="addPoints" value="0" /></div>
+    <div class="form-group"><label>初始余额</label><input type="number" id="addBalance" value="0" step="0.01" /></div>
+    <div class="form-group"><label>角色</label><select id="addRole">${roleOptions}</select></div>
+  `;
+  showModal('添加用户', body, 'add');
+}
+
+// =====================================================
+// 编辑用户
+// =====================================================
+function openEditUser(account) {
+  const user = users.find(u => u.account === account);
+  if (!user) return;
+
+  const canEditMoney = currentUser.role === 'master' || currentUser.role === 'sub';
+  const levelOptions = levels.map(l => `<option value="${l}" ${l === user.level ? 'selected' : ''}>${l}</option>`).join('');
+
+  const body = `
+    <div class="form-group"><label>卡号</label><input type="text" value="${user.account}" disabled style="background:#edf2f7;" /></div>
+    <div class="form-group"><label>姓名</label><input type="text" id="editName" value="${user.name || ''}" /></div>
+    <div class="form-group"><label>等级</label><select id="editLevel">${levelOptions}</select></div>
+    <div class="form-group"><label>密码（留空不改）</label><input type="text" id="editPassword" placeholder="不修改请留空" /></div>
+    ${canEditMoney ? `
+      <div class="form-group"><label>积分</label><input type="number" id="editPoints" value="${user.points ?? 0}" /></div>
+      <div class="form-group"><label>余额</label><input type="number" id="editBalance" value="${user.balance ?? 0}" step="0.01" /></div>
+    ` : ''}
+  `;
+  showModal('编辑用户', body, 'edit', { account });
+}
+
+// =====================================================
+// 充值 / 扣款
+// =====================================================
+function openCharge(account, direction) {
+  const user = users.find(u => u.account === account);
+  if (!user) return;
+  const action = direction === 1 ? '充值' : '扣款';
+  const body = `
+    <div class="form-group"><label>卡号</label><input type="text" value="${account}" disabled style="background:#edf2f7;" /></div>
+    <div class="form-group"><label>当前余额</label><input type="text" value="${(user.balance||0).toFixed(2)}" disabled style="background:#edf2f7;" /></div>
+    <div class="form-group"><label>${action}金额</label><input type="number" id="chargeAmount" step="0.01" min="0.01" /></div>
+  `;
+  showModal(action + '操作', body, 'charge', { account, direction });
+}
+
+// =====================================================
+// 等级管理
+// =====================================================
+function openManageLevels() {
+  const listHTML = levels.map((l, i) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #edf2f7;">
+      <span>${l}</span>
+      <button class="btn btn-danger btn-sm" onclick="deleteLevel('${l.replace(/'/g, "\\'")}')">删除</button>
+    </div>
+  `).join('');
+
+  const body = `
+    <div style="max-height:300px;overflow-y:auto;margin-bottom:16px;">${listHTML || '暂无等级'}</div>
+    <div class="form-group">
+      <label>新增等级</label>
+      <input type="text" id="newLevelName" placeholder="输入等级名称" />
+    </div>
+    <button class="btn btn-success" id="addLevelBtn" style="width:100%;">➕ 添加等级</button>
+  `;
+  showModal('等级管理', body, 'levels');
+
+  $('addLevelBtn').onclick = async () => {
+    const name = $('newLevelName').value.trim();
+    if (!name) { $('modalError').textContent = '请输入等级名称'; return; }
+    try {
+      const data = await api('/api/levels/add', {
+        method: 'POST',
+        body: JSON.stringify({ name })
+      });
+      levels = data.levels;
+      openManageLevels();
+    } catch (e) {
+      $('modalError').textContent = e.message;
+    }
+  };
+}
+
+async function deleteLevel(name) {
+  if (!confirm(`确定删除等级 "${name}" 吗？`)) return;
+  try {
+    const data = await api('/api/levels/delete', {
+      method: 'POST',
+      body: JSON.stringify({ name })
+    });
+    levels = data.levels;
+    openManageLevels();
+  } catch (e) {
+    $('modalError').textContent = e.message;
+  }
+}
+
+// =====================================================
+// 删除用户
+// =====================================================
+async function deleteUser(account) {
+  if (!confirm(`确定删除用户 ${account} 吗？`)) return;
+  try {
+    await api('/api/users/delete', {
+      method: 'POST',
+      body: JSON.stringify({ account })
+    });
+    await loadUsers();
+    renderTable();
+  } catch (e) {
+    alert('删除失败：' + e.message);
+  }
+}
+
+// =====================================================
+// 模态框确认
+// =====================================================
+$('modalConfirmBtn').onclick = async () => {
+  $('modalError').textContent = '';
+  try {
+    if (modalMode === 'add') {
+      const account = $('addAccount').value.trim();
+      const name = $('addName').value.trim();
+      const password = $('addPassword').value.trim();
+      const level = $('addLevel').value;
+      const points = parseInt($('addPoints').value) || 0;
+      const balance = parseFloat($('addBalance').value) || 0;
+      const role = $('addRole').value;
+
+      if (!account || !password) { $('modalError').textContent = '卡号和密码不能为空'; return; }
+      await api('/api/users/add', {
+        method: 'POST',
+        body: JSON.stringify({ account, name, password, level, points, balance, role })
+      });
+      closeModal();
+      await loadUsers();
+      renderTable();
+    } else if (modalMode === 'edit') {
+      const account = modalData.account;
+      const name = $('editName').value.trim();
+      const level = $('editLevel').value;
+      const password = $('editPassword').value.trim();
+      const payload = { account, name, level };
+      if (password) payload.password = password;
+      if ($('editPoints')) payload.points = parseInt($('editPoints').value) || 0;
+      if ($('editBalance')) payload.balance = parseFloat($('editBalance').value) || 0;
+
+      await api('/api/users/edit', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      closeModal();
+      await loadUsers();
+      renderTable();
+    } else if (modalMode === 'charge') {
+      const amount = parseFloat($('chargeAmount').value);
+      if (isNaN(amount) || amount <= 0) { $('modalError').textContent = '请输入有效金额'; return; }
+      await api('/api/users/charge', {
+        method: 'POST',
+        body: JSON.stringify({
+          account: modalData.account,
+          amount,
+          direction: modalData.direction
+        })
+      });
+      closeModal();
+      await loadUsers();
+      renderTable();
+    }
+  } catch (e) {
+    $('modalError').textContent = e.message;
+  }
+};
+
+// =====================================================
+// 退出
+// =====================================================
+$('logoutBtn').onclick = () => {
+  if (!confirm('确定退出？')) return;
+  localStorage.removeItem('member_token');
+  token = '';
+  currentUser = null;
+  location.reload();
+};
+
+// =====================================================
+// 启动
+// =====================================================
+boot();
+</script>
+
+</body>
+</html>
