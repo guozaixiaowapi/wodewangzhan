@@ -119,14 +119,17 @@
 
 <!-- 云空间 -->
 <div class="cloud-bar" id="cloudBar" style="display:none;">
-  <div class="info">
+  <div class="info" id="cloudInfoArea" style="cursor:pointer;">
     <div class="icon">☁️</div>
     <div class="text">
       <div class="label">我的云空间</div>
       <div class="value" id="cloudValue">加载中 ...</div>
     </div>
   </div>
-  <button id="cloudExpandBtn">➕ 扩容</button>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <button id="cloudOpenBtn" style="background:linear-gradient(135deg,#4facfe,#00f2fe);color:#000;">📁 我的文件</button>
+    <button id="cloudExpandBtn">➕ 扩容</button>
+  </div>
 </div>
 
 <!-- ============ 模态框 ============ -->
@@ -315,20 +318,62 @@
   </div>
 </div>
 
+<!-- 云空间文件管理 -->
+<div class="overlay" id="cloudModal">
+  <div class="modal" style="max-width:720px;">
+    <h2 style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <span>☁️ 我的云空间</span>
+      <span style="font-size:13px;color:rgba(255,255,255,0.5);" id="cloudUsageText"></span>
+    </h2>
+
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+      <input type="file" id="cloudFileInput" style="display:none;" />
+      <button class="btn btn-primary" id="cloudUploadBtn" style="width:auto;padding:10px 20px;margin:0;">📤 上传文件</button>
+      <button class="btn btn-outline" id="cloudRefreshBtn" style="width:auto;padding:10px 20px;margin:0;">🔄 刷新</button>
+    </div>
+
+    <div id="cloudProgressWrap" style="display:none;margin-bottom:12px;">
+      <div style="height:8px;background:rgba(255,255,255,0.1);border-radius:10px;overflow:hidden;">
+        <div id="cloudProgressBar" style="height:100%;width:0%;background:linear-gradient(90deg,#4facfe,#43e97b);transition:width 0.3s;"></div>
+      </div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:4px;" id="cloudProgressText"></div>
+    </div>
+
+    <div id="cloudFileList" style="max-height:360px;overflow-y:auto;border:1px solid rgba(255,255,255,0.08);border-radius:12px;">
+      <div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4);">加载中...</div>
+    </div>
+
+    <div class="msg" id="cloudMsg"></div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:16px;">
+      <button class="btn btn-outline" id="cloudModalCloseBtn" style="width:auto;padding:10px 24px;margin:0;">关闭</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // =============================================================
-// 配置
+// 工具
+// =============================================================
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  if (bytes < 1073741824) return (bytes / 1048576).toFixed(2) + ' MB';
+  return (bytes / 1073741824).toFixed(2) + ' GB';
+}
+
+const $ = id => document.getElementById(id);
+
+// =============================================================
+// 配置与状态
 // =============================================================
 const API = '/main-api';
 
-// =============================================================
-// 状态
-// =============================================================
 let currentUser = null;
 let token = localStorage.getItem('token') || '';
-let loginMode = 'sms';  // sms | pwd
-
-const $ = id => document.getElementById(id);
+let loginMode = 'sms';
+let cloudFiles = [];
+let cloudUploading = false;
 
 async function api(path, options = {}) {
   const headers = { 'Content-Type': 'application/json' };
@@ -361,20 +406,14 @@ async function boot() {
 }
 
 // =============================================================
-// 发送验证码
+// 验证码
 // =============================================================
 function bindSendCode(btnId, phoneId, purpose) {
   $(btnId).onclick = async function () {
     const phone = $(phoneId).value.trim();
-    if (!/^\d{11}$/.test(phone)) {
-      alert('手机号格式错误');
-      return;
-    }
+    if (!/^\d{11}$/.test(phone)) { alert('手机号格式错误'); return; }
     try {
-      await api('/api/sms/send', {
-        method: 'POST',
-        body: JSON.stringify({ phone, purpose })
-      });
+      await api('/api/sms/send', { method: 'POST', body: JSON.stringify({ phone, purpose }) });
       let count = 60;
       $(btnId).disabled = true;
       const timer = setInterval(() => {
@@ -386,9 +425,7 @@ function bindSendCode(btnId, phoneId, purpose) {
           $(btnId).textContent = '获取验证码';
         }
       }, 1000);
-    } catch (e) {
-      alert(e.message);
-    }
+    } catch (e) { alert(e.message); }
   };
 }
 
@@ -397,7 +434,7 @@ bindSendCode('forgotSendBtn', 'forgotPhone', 'forgot');
 bindSendCode('newPhoneSendBtn', 'newPhoneInput', 'change_phone');
 
 // =============================================================
-// 登录模式切换
+// 登录模式
 // =============================================================
 $('switchModeBtn').onclick = function () {
   if (loginMode === 'sms') {
@@ -422,17 +459,11 @@ $('loginBtn').onclick = async function () {
     if (loginMode === 'sms') {
       const code = $('loginCode').value.trim();
       if (!phone || !code) throw new Error('请填写手机号和验证码');
-      data = await api('/api/auth/login-sms', {
-        method: 'POST',
-        body: JSON.stringify({ phone, code })
-      });
+      data = await api('/api/auth/login-sms', { method: 'POST', body: JSON.stringify({ phone, code }) });
     } else {
       const password = $('loginPassword').value.trim();
       if (!phone || !password) throw new Error('请填写手机号和密码');
-      data = await api('/api/auth/login-pwd', {
-        method: 'POST',
-        body: JSON.stringify({ phone, password })
-      });
+      data = await api('/api/auth/login-pwd', { method: 'POST', body: JSON.stringify({ phone, password }) });
     }
     token = data.token;
     localStorage.setItem('token', token);
@@ -440,9 +471,7 @@ $('loginBtn').onclick = async function () {
     hideModal('loginModal');
     renderUser();
     checkPermissions();
-    if (data.need_password) {
-      showModal('setPwdModal');
-    }
+    if (data.need_password) showModal('setPwdModal');
   } catch (e) {
     msgEl.textContent = e.message;
     msgEl.className = 'msg error';
@@ -463,10 +492,7 @@ $('setPwdBtn').onclick = async function () {
     return;
   }
   try {
-    await api('/api/auth/set-password', {
-      method: 'POST',
-      body: JSON.stringify({ password: pwd })
-    });
+    await api('/api/auth/set-password', { method: 'POST', body: JSON.stringify({ password: pwd }) });
     msgEl.textContent = '✅ 设置成功';
     msgEl.className = 'msg success';
     setTimeout(() => hideModal('setPwdModal'), 800);
@@ -488,16 +514,10 @@ $('forgotConfirmBtn').onclick = async function () {
   const msgEl = $('forgotMsg');
   msgEl.className = 'msg';
   try {
-    await api('/api/auth/forgot-password', {
-      method: 'POST',
-      body: JSON.stringify({ phone, code, new_password: newPwd })
-    });
+    await api('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify({ phone, code, new_password: newPwd }) });
     msgEl.textContent = '✅ 密码已重置，请重新登录';
     msgEl.className = 'msg success';
-    setTimeout(() => {
-      hideModal('forgotModal');
-      showModal('loginModal');
-    }, 1200);
+    setTimeout(() => { hideModal('forgotModal'); showModal('loginModal'); }, 1200);
   } catch (e) {
     msgEl.textContent = e.message;
     msgEl.className = 'msg error';
@@ -516,14 +536,11 @@ function renderUser() {
   $('welcomeSub').textContent = '角色：' + roleLabel;
   $('cardGrid').style.display = 'grid';
   $('cloudBar').style.display = 'flex';
-
-  const used = (currentUser.cloud_used || 0) / 1073741824;
-  const limit = (currentUser.cloud_limit || 2147483648) / 1073741824;
-  $('cloudValue').textContent = `${used.toFixed(2)} GB / ${limit.toFixed(2)} GB`;
+  $('cloudValue').textContent = `${formatSize(currentUser.cloud_used || 0)} / ${formatSize(currentUser.cloud_limit || 2147483648)}`;
 }
 
 // =============================================================
-// 权限检查
+// 权限
 // =============================================================
 function checkPermissions() {
   if (!currentUser) return;
@@ -534,20 +551,11 @@ function checkPermissions() {
   document.querySelectorAll('.card').forEach(card => {
     const p = card.dataset.perm;
     let hasPerm = isAdmin;
+    if (p === 'member') hasPerm = currentUser.member_authorized || role === 'super';
+    else if (role === 'user') hasPerm = perms.includes(p);
 
-    if (p === 'member') {
-      hasPerm = currentUser.member_authorized || role === 'super';
-    } else {
-      if (role === 'user') {
-        hasPerm = perms.includes(p);
-      }
-    }
-
-    if (!hasPerm) {
-      card.classList.add('locked');
-    } else {
-      card.classList.remove('locked');
-    }
+    if (!hasPerm) card.classList.add('locked');
+    else card.classList.remove('locked');
   });
 }
 
@@ -563,17 +571,10 @@ document.querySelectorAll('.card').forEach(card => {
     const isAdmin = ['super', 'master', 'deputy'].includes(role);
     const perms = currentUser.permissions || [];
     let hasPerm = isAdmin;
+    if (p === 'member') hasPerm = currentUser.member_authorized || role === 'super';
+    else if (role === 'user') hasPerm = perms.includes(p);
 
-    if (p === 'member') {
-      hasPerm = currentUser.member_authorized || role === 'super';
-    } else {
-      if (role === 'user') hasPerm = perms.includes(p);
-    }
-
-    if (!hasPerm) {
-      showModal('activateModal');
-      return;
-    }
+    if (!hasPerm) { showModal('activateModal'); return; }
 
     const phone = encodeURIComponent(currentUser.phone);
     const name = encodeURIComponent(currentUser.name || '');
@@ -596,10 +597,7 @@ $('activateBtn').onclick = async function () {
   const msgEl = $('activateMsg');
   msgEl.className = 'msg';
   try {
-    const data = await api('/api/activation/use', {
-      method: 'POST',
-      body: JSON.stringify({ code })
-    });
+    const data = await api('/api/activation/use', { method: 'POST', body: JSON.stringify({ code }) });
     currentUser = data.user;
     msgEl.textContent = '✅ 激活成功！';
     msgEl.className = 'msg success';
@@ -615,7 +613,7 @@ $('activateBtn').onclick = async function () {
 };
 
 // =============================================================
-// 头像
+// 头像 / 用户信息
 // =============================================================
 $('avatarBtn').onclick = function () {
   if (!currentUser) { showModal('loginModal'); return; }
@@ -637,7 +635,7 @@ function renderProfile() {
       <div>🎭 角色：<span class="role-tag ${currentUser.role}">${roleLabel}</span></div>
       <div>🔑 已激活模块：${perms}</div>
       <div>🛡️ 会员中心：${currentUser.member_authorized ? '已授权' : '未授权'}</div>
-      <div>☁️ 云空间：${((currentUser.cloud_used||0)/1073741824).toFixed(2)} GB / ${((currentUser.cloud_limit||2147483648)/1073741824).toFixed(2)} GB</div>
+      <div>☁️ 云空间：${formatSize(currentUser.cloud_used || 0)} / ${formatSize(currentUser.cloud_limit || 2147483648)}</div>
     </div>
   `;
 
@@ -649,9 +647,7 @@ function renderProfile() {
   $('profileBody').innerHTML = html;
   $('genCodeBtn').style.display = ['super', 'master', 'deputy'].includes(currentUser.role) ? 'block' : 'none';
 
-  if (['super', 'master', 'deputy'].includes(currentUser.role)) {
-    loadAllUsers();
-  }
+  if (['super', 'master', 'deputy'].includes(currentUser.role)) loadAllUsers();
 }
 
 async function loadAllUsers() {
@@ -662,12 +658,7 @@ async function loadAllUsers() {
     users.forEach(u => {
       const roleLabel = { super: '超管', master: '主管理', deputy: '副管理', user: '用户' }[u.role] || '用户';
       const p = (u.permissions || []).length;
-      html += `<tr>
-        <td>${u.phone}</td>
-        <td>${u.name || '-'}</td>
-        <td><span class="role-tag ${u.role}">${roleLabel}</span></td>
-        <td>${p} 个</td>
-      </tr>`;
+      html += `<tr><td>${u.phone}</td><td>${u.name || '-'}</td><td><span class="role-tag ${u.role}">${roleLabel}</span></td><td>${p} 个</td></tr>`;
     });
     html += `</tbody></table>`;
     $('allUsersArea').innerHTML = html;
@@ -706,10 +697,7 @@ $('genConfirmBtn').onclick = async function () {
     body.admin_role = $('genAdminRole').value;
   }
   try {
-    const data = await api('/api/activation/create', {
-      method: 'POST',
-      body: JSON.stringify(body)
-    });
+    const data = await api('/api/activation/create', { method: 'POST', body: JSON.stringify(body) });
     $('genCodeResult').textContent = data.code;
     $('genResultArea').style.display = 'block';
     $('genMsg').textContent = '✅ 生成成功';
@@ -736,16 +724,10 @@ $('changePhoneConfirmBtn').onclick = async function () {
   const code = $('newPhoneCode').value.trim();
   const msgEl = $('changePhoneMsg');
   try {
-    await api('/api/auth/change-phone', {
-      method: 'POST',
-      body: JSON.stringify({ new_phone: newPhone, code })
-    });
+    await api('/api/auth/change-phone', { method: 'POST', body: JSON.stringify({ new_phone: newPhone, code }) });
     msgEl.textContent = '✅ 换绑成功，请重新登录';
     msgEl.className = 'msg success';
-    setTimeout(() => {
-      localStorage.removeItem('token');
-      location.reload();
-    }, 1500);
+    setTimeout(() => { localStorage.removeItem('token'); location.reload(); }, 1500);
   } catch (e) {
     msgEl.textContent = e.message;
     msgEl.className = 'msg error';
@@ -762,10 +744,7 @@ $('changePwdConfirmBtn').onclick = async function () {
   const newPwd = $('newPwdInput').value;
   const msgEl = $('changePwdMsg');
   try {
-    await api('/api/auth/change-password', {
-      method: 'POST',
-      body: JSON.stringify({ old_password: oldPwd, new_password: newPwd })
-    });
+    await api('/api/auth/change-password', { method: 'POST', body: JSON.stringify({ old_password: oldPwd, new_password: newPwd }) });
     msgEl.textContent = '✅ 修改成功';
     msgEl.className = 'msg success';
     setTimeout(() => hideModal('changePwdModal'), 1000);
@@ -784,14 +763,207 @@ $('deleteAccountBtn').onclick = async function () {
     await api('/api/auth/delete-account', { method: 'POST' });
     localStorage.removeItem('token');
     location.reload();
-  } catch (e) {
-    alert('注销失败：' + e.message);
-  }
+  } catch (e) { alert('注销失败：' + e.message); }
 };
 
 // =============================================================
-// 云空间扩容
+// 云空间
 // =============================================================
+function updateCloudUsage(used, limit) {
+  if (typeof used === 'number' && typeof limit === 'number') {
+    $('cloudValue').textContent = `${formatSize(used)} / ${formatSize(limit)}`;
+    $('cloudUsageText').textContent = `${formatSize(used)} / ${formatSize(limit)}`;
+  }
+}
+
+async function openCloudModal() {
+  if (!currentUser) { showModal('loginModal'); return; }
+  showModal('cloudModal');
+  await loadCloudFiles();
+}
+
+async function loadCloudFiles() {
+  const listEl = $('cloudFileList');
+  listEl.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4);">加载中...</div>';
+  try {
+    const data = await api('/api/cloud/list');
+    cloudFiles = data.files || [];
+    updateCloudUsage(data.cloud_used, data.cloud_limit);
+    renderCloudFiles();
+  } catch (e) {
+    listEl.innerHTML = `<div style="text-align:center;padding:20px;color:#ff6b6b;">加载失败：${e.message}</div>`;
+  }
+}
+
+function renderCloudFiles() {
+  const listEl = $('cloudFileList');
+  if (cloudFiles.length === 0) {
+    listEl.innerHTML = '<div style="text-align:center;padding:40px;color:rgba(255,255,255,0.4);">📭 还没有文件，点击上方按钮上传</div>';
+    return;
+  }
+  listEl.innerHTML = '';
+  cloudFiles.forEach(f => {
+    const item = document.createElement('div');
+    item.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid rgba(255,255,255,0.06);gap:12px;flex-wrap:wrap;';
+
+    const info = document.createElement('div');
+    info.style.cssText = 'flex:1;min-width:200px;';
+    info.innerHTML = `
+      <div style="font-size:14px;color:#fff;word-break:break-all;">${f.name}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:4px;">${formatSize(f.size)} · ${new Date(f.last_modified).toLocaleString()}</div>
+    `;
+
+    const btns = document.createElement('div');
+    btns.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
+    const enc = encodeURIComponent(f.name);
+    btns.innerHTML = `
+      <button class="btn btn-outline" style="width:auto;padding:6px 12px;font-size:12px;margin:0;" data-action="download" data-name="${enc}">⬇️ 下载</button>
+      <button class="btn btn-outline" style="width:auto;padding:6px 12px;font-size:12px;margin:0;" data-action="share" data-name="${enc}">🔗 分享</button>
+      <button class="btn btn-danger" style="width:auto;padding:6px 12px;font-size:12px;margin:0;" data-action="delete" data-name="${enc}">🗑️ 删除</button>
+    `;
+
+    btns.querySelectorAll('[data-action="download"]').forEach(b => b.onclick = () => downloadCloudFile(b.dataset.name));
+    btns.querySelectorAll('[data-action="share"]').forEach(b => b.onclick = () => shareCloudFile(b.dataset.name));
+    btns.querySelectorAll('[data-action="delete"]').forEach(b => b.onclick = () => deleteCloudFile(b.dataset.name));
+
+    item.appendChild(info);
+    item.appendChild(btns);
+    listEl.appendChild(item);
+  });
+}
+
+async function downloadCloudFile(encodedName) {
+  const name = decodeURIComponent(encodedName);
+  const msgEl = $('cloudMsg');
+  msgEl.textContent = '下载中...';
+  msgEl.className = 'msg show success';
+  try {
+    const resp = await fetch(API + '/api/cloud/download/' + encodeURIComponent(name), {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    msgEl.textContent = '✅ 下载成功';
+    setTimeout(() => { msgEl.className = 'msg'; }, 2000);
+  } catch (e) {
+    msgEl.textContent = '下载失败：' + e.message;
+    msgEl.className = 'msg show error';
+  }
+}
+
+async function shareCloudFile(encodedName) {
+  const name = decodeURIComponent(encodedName);
+  const msgEl = $('cloudMsg');
+  const days = prompt('分享链接有效期（天）', '7');
+  if (days === null) return;
+  const expire = parseInt(days) || 7;
+  try {
+    const data = await api('/api/cloud/share', { method: 'POST', body: JSON.stringify({ filename: name, expire_days: expire }) });
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(data.url);
+      msgEl.textContent = '✅ 分享链接已复制（' + expire + '天有效）';
+    } else {
+      prompt('复制以下链接：', data.url);
+      msgEl.textContent = '✅ 分享链接已生成';
+    }
+    msgEl.className = 'msg show success';
+    setTimeout(() => { msgEl.className = 'msg'; }, 4000);
+  } catch (e) {
+    msgEl.textContent = '生成分享链接失败：' + e.message;
+    msgEl.className = 'msg show error';
+  }
+}
+
+async function deleteCloudFile(encodedName) {
+  const name = decodeURIComponent(encodedName);
+  if (!confirm(`确定删除文件 "${name}" 吗？`)) return;
+  const msgEl = $('cloudMsg');
+  try {
+    await api('/api/cloud/delete', { method: 'POST', body: JSON.stringify({ filename: name }) });
+    await loadCloudFiles();
+    msgEl.textContent = '✅ 已删除';
+    msgEl.className = 'msg show success';
+    setTimeout(() => { msgEl.className = 'msg'; }, 2000);
+  } catch (e) {
+    msgEl.textContent = '删除失败：' + e.message;
+    msgEl.className = 'msg show error';
+  }
+}
+
+async function uploadCloudFile() {
+  if (cloudUploading) return;
+  const file = $('cloudFileInput').files[0];
+  if (!file) return;
+
+  cloudUploading = true;
+  $('cloudUploadBtn').disabled = true;
+  $('cloudProgressWrap').style.display = 'block';
+  $('cloudProgressBar').style.width = '0%';
+  $('cloudProgressText').textContent = '0%';
+  $('cloudMsg').className = 'msg';
+
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('temp_id', Math.random().toString(36).slice(2));
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', API + '/api/cloud/upload');
+  xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+
+  xhr.upload.onprogress = function (e) {
+    if (e.lengthComputable) {
+      const pct = Math.round((e.loaded / e.total) * 100);
+      $('cloudProgressBar').style.width = pct + '%';
+      $('cloudProgressText').textContent = pct + '% (' + formatSize(e.loaded) + ' / ' + formatSize(e.total) + ')';
+    }
+  };
+
+  xhr.onload = async function () {
+    cloudUploading = false;
+    $('cloudUploadBtn').disabled = false;
+    $('cloudFileInput').value = '';
+
+    if (xhr.status >= 200 && xhr.status < 300) {
+      $('cloudProgressBar').style.width = '100%';
+      $('cloudProgressText').textContent = '完成';
+      $('cloudMsg').textContent = '✅ 上传成功';
+      $('cloudMsg').className = 'msg show success';
+      setTimeout(() => { $('cloudProgressWrap').style.display = 'none'; }, 1500);
+      await loadCloudFiles();
+    } else {
+      let err = '上传失败';
+      try { const j = JSON.parse(xhr.responseText); err = j.error || err; } catch (_) { }
+      $('cloudProgressWrap').style.display = 'none';
+      $('cloudMsg').textContent = err;
+      $('cloudMsg').className = 'msg show error';
+    }
+  };
+
+  xhr.onerror = function () {
+    cloudUploading = false;
+    $('cloudUploadBtn').disabled = false;
+    $('cloudProgressWrap').style.display = 'none';
+    $('cloudMsg').textContent = '网络错误';
+    $('cloudMsg').className = 'msg show error';
+  };
+
+  xhr.send(fd);
+}
+
+$('cloudOpenBtn').onclick = openCloudModal;
+$('cloudInfoArea').onclick = openCloudModal;
+$('cloudModalCloseBtn').onclick = () => hideModal('cloudModal');
+$('cloudRefreshBtn').onclick = loadCloudFiles;
+$('cloudUploadBtn').onclick = () => $('cloudFileInput').click();
+$('cloudFileInput').onchange = uploadCloudFile;
 $('cloudExpandBtn').onclick = () => {
   if (!currentUser) { showModal('loginModal'); return; }
   showModal('activateModal');
