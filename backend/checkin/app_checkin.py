@@ -118,7 +118,6 @@ def load_data():
     try:
         obj = bucket.get_object(DATA_FILE)
         data = json.loads(obj.read().decode('utf-8'))
-        # 兼容旧数据
         for k in ['users', 'families', 'activities', 'records']:
             if k not in data:
                 data[k] = []
@@ -136,7 +135,6 @@ def save_data(data):
 # ---------- SSO（从主界面进来） ----------
 @app.route('/api/auth/sso', methods=['POST'])
 def sso_login():
-    """主界面带手机号过来，自动授权"""
     data = request.json or {}
     phone = data.get('phone', '').strip()
     name = data.get('name', '').strip()
@@ -148,7 +146,6 @@ def sso_login():
     user = next((u for u in app_data['users'] if u['phone'] == phone), None)
 
     if not user:
-        # 自动创建，默认是签到游客
         user = {
             'phone': phone,
             'password': '123456',
@@ -186,7 +183,6 @@ def login():
     if user.get('password') != password:
         return jsonify({'error': '密码错误'}), 401
 
-    # 检查临时账号是否过期
     if user.get('role') == 'temp' and user.get('expireTime'):
         if time.time() > user['expireTime']:
             return jsonify({'error': '临时账号已过期'}), 401
@@ -211,7 +207,6 @@ def me():
 @require_auth
 def data_get():
     app_data = load_data()
-    # 隐藏密码
     users = [{k: v for k, v in u.items() if k != 'password'} for u in app_data['users']]
     return jsonify({
         'users': users,
@@ -225,7 +220,6 @@ def data_get():
 @app.route('/api/data/save', methods=['POST'])
 @require_auth
 def data_save():
-    """前端把整个 appData 传上来，后端合并写回"""
     current = request.current_user
     if current['role'] not in ['master', 'deputy', 'familyMaster', 'deputyGuest']:
         return jsonify({'error': '权限不足'}), 403
@@ -233,16 +227,13 @@ def data_save():
     incoming = request.json or {}
     app_data = load_data()
 
-    # 合并策略：以传入的数据为准（前端已经处理过合并逻辑）
     if 'users' in incoming:
-        # 保留密码（前端不传密码，所以要合并回来）
         old_pw_map = {u['phone']: u.get('password') for u in app_data['users']}
         new_users = []
         for u in incoming['users']:
             if 'password' not in u or not u['password']:
                 u['password'] = old_pw_map.get(u['phone'], '123456')
             new_users.append(u)
-        # 保证原有用户不丢
         incoming_phones = {u['phone'] for u in new_users}
         for old_u in app_data['users']:
             if old_u['phone'] not in incoming_phones:
@@ -256,7 +247,6 @@ def data_save():
         app_data['activities'] = incoming['activities']
 
     if 'records' in incoming:
-        # 记录按 id 去重合并
         old_ids = {r['id'] for r in app_data['records']}
         for r in incoming['records']:
             if r['id'] not in old_ids:
@@ -264,11 +254,12 @@ def data_save():
                 old_ids.add(r['id'])
 
     save_data(app_data)
-    log_operation(current['phone'], 'save_data', f'用户:{len(app_data["users"])},家庭:{len(app_data["families"])},活动:{len(app_data["activities"])},记录:{len(app_data["records"])}')
+    log_operation(current['phone'], 'save_data',
+                  f'用户:{len(app_data["users"])},家庭:{len(app_data["families"])},活动:{len(app_data["activities"])},记录:{len(app_data["records"])}')
     return jsonify({'message': '保存成功'})
 
 
-# ---------- 添加签到记录（单独接口） ----------
+# ---------- 添加签到记录 ----------
 @app.route('/api/records/add', methods=['POST'])
 @require_auth
 def records_add():
@@ -287,7 +278,6 @@ def records_add():
     if not activity.get('isActive'):
         return jsonify({'error': '该活动未激活'}), 400
 
-    # 检查是否已签到
     already = any(
         r for r in app_data['records']
         if r['phone'] == current['phone'] and r['activityId'] == activity_id
@@ -306,7 +296,6 @@ def records_add():
     save_data(app_data)
 
     log_operation(current['phone'], 'checkin', f'活动:{activity_id}, 姓名:{name}')
-
     return jsonify({'message': '签到成功', 'record': record})
 
 
@@ -364,7 +353,6 @@ def activities_toggle():
     if activity.get('isActive'):
         activity['isActive'] = False
     else:
-        # 先全部停用
         for a in app_data['activities']:
             a['isActive'] = False
         activity['isActive'] = True
@@ -473,6 +461,120 @@ def users_delete():
 
     log_operation(current['phone'], 'delete_user', f'用户:{phone}')
     return jsonify({'message': '删除成功'})
+
+
+# ============ AI 配置与对话 ============
+AI_CONFIG_FILE = OSS_PREFIX + 'ai_config.json'
+
+DEFAULT_AI_CONFIG = {
+    'apiKey': '',
+    'model': 'deepseek-v4-flash',
+    'apiUrl': 'https://api.deepseek.com/v1/chat/completions',
+    'saveHistory': True
+}
+
+
+def read_json(key, default=None):
+    bucket = get_oss_client()
+    try:
+        obj = bucket.get_object(key)
+        return json.loads(obj.read().decode('utf-8'))
+    except oss2.exceptions.NoSuchKey:
+        return default if default is not None else {}
+
+
+def write_json(key, data):
+    bucket = get_oss_client()
+    bucket.put_object(key, json.dumps(data, ensure_ascii=False).encode('utf-8'))
+
+
+@app.route('/api/ai/config/get', methods=['GET'])
+def ai_config_get():
+    cfg = read_json(AI_CONFIG_FILE, None)
+    if cfg is None:
+        cfg = dict(DEFAULT_AI_CONFIG)
+    safe = dict(cfg)
+    if safe.get('apiKey'):
+        safe['apiKey'] = safe['apiKey'][:8] + '****'
+    return jsonify({'config': safe, 'has_key': bool(cfg.get('apiKey'))})
+
+
+@app.route('/api/ai/config/save', methods=['POST'])
+@require_auth
+def ai_config_save():
+    current = request.current_user
+    if current.get('role') not in ['master', 'deputy']:
+        return jsonify({'error': '权限不足'}), 403
+
+    data = request.json or {}
+    cfg = read_json(AI_CONFIG_FILE, dict(DEFAULT_AI_CONFIG))
+
+    if 'apiKey' in data and data['apiKey']:
+        cfg['apiKey'] = data['apiKey']
+    if 'model' in data:
+        cfg['model'] = data['model']
+    if 'apiUrl' in data:
+        cfg['apiUrl'] = data['apiUrl']
+    if 'saveHistory' in data:
+        cfg['saveHistory'] = bool(data['saveHistory'])
+
+    write_json(AI_CONFIG_FILE, cfg)
+    log_operation(current['phone'], 'save_ai_config', f'模型:{cfg.get("model")}')
+    return jsonify({'message': '保存成功'})
+
+
+@app.route('/api/ai/chat', methods=['POST'])
+@require_auth
+def ai_chat():
+    import requests as http_requests
+
+    cfg = read_json(AI_CONFIG_FILE, dict(DEFAULT_AI_CONFIG))
+    if not cfg.get('apiKey'):
+        return jsonify({'error': 'AI 未配置，请联系管理员'}), 500
+
+    data = request.json or {}
+    messages = data.get('messages', [])
+    if not messages:
+        return jsonify({'error': '消息为空'}), 400
+
+    api_url = cfg.get('apiUrl', 'https://api.deepseek.com/v1/chat/completions').rstrip('/')
+    if not api_url.endswith('/chat/completions'):
+        api_url += '/chat/completions'
+
+    try:
+        resp = http_requests.post(
+            api_url,
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + cfg['apiKey']
+            },
+            json={
+                'model': cfg.get('model', 'deepseek-v4-flash'),
+                'messages': messages,
+                'temperature': 0.7,
+                'max_tokens': 2048,
+                'stream': False
+            },
+            timeout=60
+        )
+    except Exception as e:
+        return jsonify({'error': f'AI 请求失败：{e}'}), 500
+
+    if not resp.ok:
+        detail = ''
+        try:
+            detail = resp.text[:200]
+        except Exception:
+            pass
+        return jsonify({'error': f'HTTP {resp.status_code}: {detail}'}), 500
+
+    result = resp.json()
+    content = ''
+    if result.get('choices') and result['choices'][0].get('message'):
+        content = result['choices'][0]['message'].get('content', '')
+
+    log_operation(current['phone'], 'ai_chat', f'长度:{len(content)}')
+    return jsonify({'content': content})
 
 
 # ---------- 健康检查 ----------
