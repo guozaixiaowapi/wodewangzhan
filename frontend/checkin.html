@@ -256,7 +256,10 @@
   <!-- 模态框：AI 助手 -->
   <div class="modal-overlay" id="aiModal">
     <div class="modal-card">
-      <div class="modal-title">🤖 AI 智能查询</div>
+      <div class="modal-title" style="display:flex;justify-content:space-between;align-items:center;">
+  <span>🤖 AI 智能查询</span>
+  <button class="btn btn-secondary btn-sm" id="aiSettingsOpenBtn" style="font-size:12px;padding:6px 14px;">⚙️ 设置</button>
+</div>
       <div class="chat-messages" id="chatMessages">
         <div class="chat-message assistant">👋 你好！我是签到AI助手。可以问我：总签到人数、今日签到、某家庭签到情况、谁签得最多、我的签到记录……</div>
       </div>
@@ -299,7 +302,6 @@
   'use strict';
 
   const API = '/checkin-api';
-  const AI_CONFIG_KEY = 'checkin_ai_config';
 
   let token = localStorage.getItem('checkin_token') || '';
   let currentUser = null;
@@ -899,13 +901,46 @@
   };
 
   // ===== AI 助手 =====
-  function loadAIConfig() {
-    try {
-      const r = localStorage.getItem(AI_CONFIG_KEY);
-      return r ? JSON.parse(r) : null;
-    } catch (e) { return null; }
+async function fetchAIConfig() {
+  try {
+    const data = await api('/api/ai/config/get');
+    return data;
+  } catch (e) {
+    return { config: null, has_key: false };
   }
-  function saveAIConfig(cfg) { localStorage.setItem(AI_CONFIG_KEY, JSON.stringify(cfg)); }
+}
+
+async function openAISettings() {
+  const data = await fetchAIConfig();
+  const cfg = data.config || {};
+  $('aiApiUrl').value = cfg.apiUrl || '';
+  $('aiApiKey').value = '';
+  $('aiModel').value = cfg.model || '';
+  $('aiSettingsMsg').textContent = data.has_key ? '（已配置 Key，留空则不修改）' : '';
+  $('aiSettingsMsg').className = 'msg';
+  $('aiSettingsModal').classList.add('active');
+}
+
+$('aiSettingsOpenBtn').onclick = openAISettings;
+$('aiSettingsCancelBtn').onclick = () => $('aiSettingsModal').classList.remove('active');
+$('aiSettingsSaveBtn').onclick = async function() {
+  const body = {
+    apiUrl: $('aiApiUrl').value.trim(),
+    model: $('aiModel').value.trim()
+  };
+  const key = $('aiApiKey').value.trim();
+  if (key) body.apiKey = key;
+  const msgEl = $('aiSettingsMsg');
+  try {
+    await api('/api/ai/config/save', { method: 'POST', body: JSON.stringify(body) });
+    msgEl.textContent = '✅ 保存成功';
+    msgEl.className = 'msg show success';
+    setTimeout(() => $('aiSettingsModal').classList.remove('active'), 800);
+  } catch (e) {
+    msgEl.textContent = e.message;
+    msgEl.className = 'msg show error';
+  }
+};
 
   $('aiAssistantBtn').onclick = function() {
     $('aiModal').classList.add('active');
@@ -971,56 +1006,43 @@
     return '❓ 试试问：总签到人数、今日签到、家庭“XX”签到情况、签到最多的家庭、我的签到记录';
   }
 
-  async function handleAskAI() {
-    if (aiBusy) return;
-    const q = $('aiQuestionInput').value.trim();
-    if (!q) return;
-    appendChatMessage('user', q);
-    $('aiQuestionInput').value = '';
-    aiBusy = true;
-    $('aiAskBtn').disabled = true;
-    const placeholder = appendChatMessage('assistant', '正在思考中…');
-    placeholder.classList.add('loading');
+async function handleAskAI() {
+  if (aiBusy) return;
+  const q = $('aiQuestionInput').value.trim();
+  if (!q) return;
+  appendChatMessage('user', q);
+  $('aiQuestionInput').value = '';
+  aiBusy = true;
+  $('aiAskBtn').disabled = true;
+  const placeholder = appendChatMessage('assistant', '正在思考中…');
+  placeholder.classList.add('loading');
 
-    const cfg = loadAIConfig();
-    let answer;
-    if (cfg && cfg.apiUrl && cfg.apiKey && cfg.model) {
-      try {
-        let url = cfg.apiUrl.replace(/\/+$/, '');
-        if (!/\/chat\/completions$/i.test(url)) url += '/chat/completions';
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + cfg.apiKey
-          },
-          body: JSON.stringify({
-            model: cfg.model,
-            messages: [
-              { role: 'system', content: '你是签到系统助手，回答简洁清晰，不含密码等敏感信息。' },
-              ...aiChatHistory.slice(-8),
-              { role: 'user', content: q }
-            ],
-            temperature: 0.6,
-            stream: false
-          })
-        });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        const data = await resp.json();
-        answer = data.choices[0].message.content;
-        aiChatHistory.push({ role: 'user', content: q });
-        aiChatHistory.push({ role: 'assistant', content: answer });
-      } catch (e) {
-        answer = getLocalAIResponse(q) + `\n\n⚠️ AI 调用失败：${e.message}`;
-      }
-    } else {
-      answer = getLocalAIResponse(q) + '\n\n💡 未配置 AI，使用本地规则回答。';
-    }
+  try {
+    const history = aiChatHistory.slice(-10).map(m => ({ role: m.role, content: m.content }));
+    const resp = await api('/api/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: '你是签到系统助手，回答简洁清晰，不含密码等敏感信息。' },
+          ...history,
+          { role: 'user', content: q }
+        ]
+      })
+    });
     placeholder.classList.remove('loading');
-    placeholder.textContent = answer;
+    placeholder.textContent = resp.content || '（空）';
+    aiChatHistory.push({ role: 'user', content: q });
+    aiChatHistory.push({ role: 'assistant', content: resp.content || '' });
+  } catch (e) {
+    placeholder.classList.remove('loading');
+    placeholder.textContent = '❌ ' + e.message;
+  } finally {
     aiBusy = false;
     $('aiAskBtn').disabled = false;
   }
+}
+
+
 
   $('aiAskBtn').onclick = handleAskAI;
   $('aiQuestionInput').addEventListener('keydown', e => { if (e.key === 'Enter') handleAskAI(); });
